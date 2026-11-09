@@ -14,6 +14,19 @@ function send(res: http.ServerResponse, status: number, body: string) {
   res.end(body);
 }
 
+/** Elastic Cloud trial embeddings can be rate limited (429): retry the job a few times. */
+async function runWithRetry(fn: () => Promise<void>): Promise<void> {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      return await fn();
+    } catch (err) {
+      const limited = JSON.stringify((err as { meta?: { body?: unknown } })?.meta?.body ?? String(err)).includes("429");
+      if (!limited || attempt >= 4) throw err;
+      await new Promise((r) => setTimeout(r, attempt * 3000));
+    }
+  }
+}
+
 const server = http.createServer((req, res) => {
   const url = new URL(req.url ?? "/", "http://localhost");
 
@@ -30,7 +43,7 @@ const server = http.createServer((req, res) => {
       const job = jobs[name];
       if (!job) return log("warn", "job.unknown", { "sidecar.job.name": name });
       // Each job is its own span, a child of the web request that queued it.
-      withSpan(`job ${name}`, { "sidecar.job.name": name }, () => job(raw ? JSON.parse(raw) : {})).catch((err) =>
+      withSpan(`job ${name}`, { "sidecar.job.name": name }, () => runWithRetry(() => job(raw ? JSON.parse(raw) : {}))).catch((err) =>
         log("error", "job.failed", { "sidecar.job.name": name, "error.type": (err as Error).name }),
       );
     });

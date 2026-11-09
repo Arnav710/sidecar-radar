@@ -8,3 +8,4 @@ export * from "./timeline";
 export * from "./health";
 export * from "./planner";
 export * from "./chat";
+export * from "./meetup";

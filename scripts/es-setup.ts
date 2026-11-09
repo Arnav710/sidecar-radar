@@ -12,6 +12,8 @@ import { Client } from "@elastic/elasticsearch";
 try { process.loadEnvFile(".env"); } catch { /* no .env: use the real environment */ }
 
 const SEMANTIC = process.env.ES_SEMANTIC !== "off";
+// ELSER, Elastic's own sparse semantic model, served by the Elastic Inference Service.
+const INFERENCE_ID = process.env.ES_INFERENCE_ID || ".elser-2-elastic";
 const es = new Client({
   node: process.env.ES_URL!,
   auth: process.env.ES_API_KEY ? { apiKey: process.env.ES_API_KEY } : undefined,
@@ -20,7 +22,7 @@ const es = new Client({
 /** A text field searchable by keyword, plus its semantic twin. */
 function searchable(name: string) {
   return SEMANTIC
-    ? { [name]: { type: "text", copy_to: `${name}_semantic` }, [`${name}_semantic`]: { type: "semantic_text" } }
+    ? { [name]: { type: "text", copy_to: `${name}_semantic` }, [`${name}_semantic`]: { type: "semantic_text", inference_id: INFERENCE_ID } }
     : { [name]: { type: "text" } };
 }
 
@@ -77,6 +79,18 @@ const indices: Record<string, Record<string, unknown>> = {
     text: { type: "text" }, quote: { type: "text" }, offset_s: int, created_at: date,
   },
   "sidecar-folders": { id: kw, uid: kw, name: kw, created_at: date },
+  // Demo venue: rooms and meeting spots with geo_point locations, so meetups can
+  // pick the nearest uncrowded spot with a geo_distance sort.
+  "sidecar-venue": {
+    id: kw, name: { type: "text" }, kind: kw, location: { type: "geo_point" },
+    x: { type: "float" }, y: { type: "float" }, w: { type: "float" }, h: { type: "float" },
+    capacity: int, live_count: int,
+    accessibility: { properties: { step_free: { type: "boolean" }, quiet: { type: "boolean" }, seating: { type: "boolean" } } },
+  },
+  // A proposed meetup for a mutual match (id = the match id).
+  "sidecar-meetups": {
+    match_id: kw, spot_id: kw, start: date, end: date, accepted: kw, state: kw, walk: { type: "object", enabled: false }, updated_at: date,
+  },
   // Side events from Luma, Slack and X (not part of the main talk schedule).
   "sidecar-events": {
     id: kw, source: kw, title: { type: "text" }, ...searchable("description"),

@@ -1,6 +1,6 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import { AppShell, Page } from "@/components/AppShell";
+import { Landing } from "@/components/Landing";
 import { dateLabel, untilLabel } from "@/components/format";
 import { IconBook, IconCalendar, IconLink, IconPlus } from "@/components/Icons";
 import { conferenceStatus, listConferences, type Conference } from "@/lib/conferences";
@@ -26,7 +26,8 @@ function greeting(): string {
 export default async function Dashboard() {
   const uid = await currentUid();
   const profile = await getProfile(uid);
-  if (!profile) redirect("/onboarding");
+  // New visitors see the landing page first; its button leads to sign-up.
+  if (!profile) return <Landing />;
 
   const now = new Date();
   const conferences = listConferences(now);
