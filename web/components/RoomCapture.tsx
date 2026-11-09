@@ -128,6 +128,7 @@ export function RoomCapture({ talk, roomKey, keyOk, joinUrl, qrSvg }: { talk: Ro
       </section>
 
       <section className="sticker flex flex-col items-center bg-paper p-6 text-center shadow-[var(--shadow-hard-lg)]" style={{ ["--tilt" as string]: "1deg" }}>
+        <a href={`/talk/${talk.id}/graph`} className="chip mb-4 self-end bg-lime" target="_blank" rel="noreferrer">🕸️ Open the people graph</a>
         <p className="font-display text-3xl font-extrabold">Ask this talk anything</p>
         <p className="mt-1 text-lg text-ink-soft">Scan for live captions and private questions</p>
         <div className="mt-5 w-full max-w-sm [&_svg]:h-auto [&_svg]:w-full" dangerouslySetInnerHTML={{ __html: qrSvg }} />

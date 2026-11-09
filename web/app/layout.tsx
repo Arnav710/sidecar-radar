@@ -1,11 +1,9 @@
 import type { Metadata, Viewport } from "next";
-import { Bricolage_Grotesque, DM_Sans, Space_Mono } from "next/font/google";
+import { Inter } from "next/font/google";
 import { RealUserMonitoring } from "@/components/RealUserMonitoring";
 import "./globals.css";
 
-const bricolage = Bricolage_Grotesque({ subsets: ["latin"], variable: "--font-bricolage", weight: ["500", "700", "800"] });
-const dm = DM_Sans({ subsets: ["latin"], variable: "--font-dm" });
-const spaceMono = Space_Mono({ subsets: ["latin"], variable: "--font-space-mono", weight: ["400", "700"] });
+const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
 export const metadata: Metadata = {
   title: "Sidecar",
@@ -15,12 +13,12 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  themeColor: "#fff6e6",
+  themeColor: "#f6f6f3",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${bricolage.variable} ${dm.variable} ${spaceMono.variable}`}>
+    <html lang="en" className={inter.variable}>
       <body className="min-h-dvh">
         {process.env.DASH0_RUM_TOKEN && process.env.OTEL_EXPORTER_OTLP_ENDPOINT && (
           <RealUserMonitoring
