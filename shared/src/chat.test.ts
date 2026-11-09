@@ -23,3 +23,8 @@ test("anything ending in ? is a question, even if it starts like a note", () => 
   assert.deepEqual(classifyChat("Remember the diagram earlier, what was the third box?"), { intent: "question" });
   assert.deepEqual(classifyChat("Save time by sampling at the edge?"), { intent: "question" });
 });
+
+test("an explicit note prefix still saves a note even when it ends in ?", () => {
+  assert.equal(classifyChat("note: ask Maya if they shard by tenant?").intent, "note");
+  assert.equal(classifyChat("todo: check whether v2 supports this?").intent, "note");
+});
