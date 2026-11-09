@@ -15,7 +15,8 @@ export default async function Home() {
       <header className="flex items-center justify-between">
         <Logo />
         <nav className="flex gap-2 text-sm font-semibold">
-          <span className="chip bg-white">Plan</span>
+          <Link href="/onboarding" className="chip bg-white hover:bg-sun">Profile</Link>
+          <Link href="/plan" className="chip bg-white hover:bg-sun">Plan</Link>
           <span className="chip bg-white">Connect</span>
           <span className="chip bg-white">Recap</span>
         </nav>
