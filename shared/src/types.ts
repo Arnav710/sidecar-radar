@@ -21,6 +21,8 @@ export interface Talk {
 
 /** One line of live transcript, `offset_s` seconds after the talk started. */
 export interface TranscriptLine {
+  /** Unique per line: two lines can share the same second. */
+  id: string;
   talk_id: string;
   room_id: string;
   offset_s: number;

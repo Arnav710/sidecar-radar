@@ -1,20 +1,9 @@
 import Link from "next/link";
 import { Logo } from "@/components/Logo";
+import { ROOM_COLORS, roomLabel, timeLabel } from "@/components/format";
 import { isLive, listTalks } from "@/lib/talks";
 
 export const dynamic = "force-dynamic";
-
-const ROOM_COLORS: Record<string, string> = {
-  "room-a": "var(--color-sky)",
-  "room-b": "var(--color-lilac)",
-  "room-c": "var(--color-sun)",
-  "room-d": "var(--color-bubble)",
-  main: "var(--color-lime)",
-};
-
-function timeLabel(iso: string) {
-  return new Date(iso).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", timeZone: "America/Denver" });
-}
 
 export default async function Home() {
   const { talks, connected } = await listTalks();
@@ -71,7 +60,7 @@ export default async function Home() {
           {!connected && <span className="chip bg-bubble">not connected to Elasticsearch yet</span>}
         </div>
 
-        {connected && talks.length === 0 && <p className="text-ink-soft">No talks yet.</p>}
+        {connected && talks.length === 0 && <p className="text-ink-soft">No talks yet. Run <code>npm run es:setup</code> then <code>npm run seed</code>.</p>}
 
         <div className="grid gap-4 sm:grid-cols-2">
           {[...live, ...rest].map((t, i) => (
@@ -83,7 +72,7 @@ export default async function Home() {
             >
               <div className="flex items-center justify-between">
                 <span className="chip" style={{ background: ROOM_COLORS[t.room_id] ?? "white" }}>
-                  {t.room_id.replace("room-", "Room ").toUpperCase()}
+                  {roomLabel(t.room_id)}
                 </span>
                 {isLive(t) ? (
                   <span className="chip bg-tangerine text-white">
