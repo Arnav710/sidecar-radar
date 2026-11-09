@@ -1,6 +1,6 @@
 # Sidecar
 
-**Ask the talk anything, live. The people stuck on the same thing become your hallway track.**
+**Ask the talk anything. Your questions find the right talks, the right recordings and the right people, and Sidecar books the meeting.**
 
 The best part of a conference is the people, but starting a conversation with a stranger is hard, and most hallway chats are forgettable. Sidecar introduces you to people because you share a real problem, so **every introduction comes with the conversation already started**.
 
@@ -8,7 +8,7 @@ Built at the Cloud Native Hackathon (WeMakeDevs, Salt Lake City, Nov 9 2026). Li
 
 | Doc | What's in it |
 |---|---|
-| [docs/PLAN.md](docs/PLAN.md) | Product plan: flow, features, demo script, team split, open questions |
+| [docs/PLAN.md](docs/PLAN.md) | Product plan: the hero loop, design decisions, demo script, team split, build order |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Tech plan: stack, deployment, ES data model, API, observability, CI, build order |
 | [docs/HACKATHON_REQUIREMENTS.md](docs/HACKATHON_REQUIREMENTS.md) | Rules, tracks, judging criteria |
 | [docs/research/](docs/research/) | Researched conference problems, with sources |
