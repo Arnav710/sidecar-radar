@@ -21,7 +21,7 @@ export function Landing() {
   const item = TICKER[i];
 
   return (
-    <main className="min-h-dvh overflow-hidden bg-ink text-paper [background-image:radial-gradient(rgba(255,246,230,0.07)_1px,transparent_1px)] [background-size:22px_22px]">
+    <main className="page-dark min-h-dvh overflow-hidden bg-ink text-paper [background-image:radial-gradient(rgba(255,246,230,0.07)_1px,transparent_1px)] [background-size:22px_22px]">
       <div className="mx-auto max-w-6xl px-5 pb-20 pt-6">
         <header className="flex items-center justify-between">
           <Logo dark />
