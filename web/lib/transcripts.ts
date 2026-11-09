@@ -10,8 +10,8 @@ export async function linesSince(talkId: string, sinceIso?: string): Promise<Tra
     index: INDEX.transcripts,
     size: 200,
     query: { bool: { filter } },
-    sort: [{ offset_s: "asc" }],
-    _source: ["talk_id", "room_id", "offset_s", "ts", "text"],
+    sort: [{ offset_s: "asc" }, { ts: "asc" }],
+    _source: ["id", "talk_id", "room_id", "offset_s", "ts", "text"],
   });
   return res.hits.hits.map((h) => h._source!);
 }
@@ -22,14 +22,14 @@ export async function transcriptWindow(talkId: string, fromS: number, toS: numbe
     index: INDEX.transcripts,
     size: 30,
     query: { bool: { filter: [{ term: { talk_id: talkId } }, { range: { offset_s: { gte: fromS, lte: toS } } }] } },
-    sort: [{ offset_s: "asc" }],
-    _source: ["talk_id", "room_id", "offset_s", "ts", "text"],
+    sort: [{ offset_s: "asc" }, { ts: "asc" }],
+    _source: ["id", "talk_id", "room_id", "offset_s", "ts", "text"],
   });
   return res.hits.hits.map((h) => h._source!);
 }
 
 export async function addLine(line: TranscriptLine): Promise<void> {
-  await es().index({ index: INDEX.transcripts, id: `${line.talk_id}-${line.offset_s}`, document: line, refresh: "wait_for" });
+  await es().index({ index: INDEX.transcripts, id: line.id, document: line, refresh: "wait_for" });
 }
 
 /** Search what was said: in this talk first, then across every other talk. */

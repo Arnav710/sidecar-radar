@@ -3,14 +3,23 @@
 //
 //   npm run replay                 # against http://localhost:3100
 //   SIDECAR_URL=https://sidecar.cnh.radarhq.io npm run replay
+//
+// The room key comes from ROOM_KEY, or from .room-keys.json written by
+// `npm run seed` (never committed).
 
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 
 try { process.loadEnvFile(".env"); } catch { /* use the real environment */ }
 
 const BASE = process.env.SIDECAR_URL || "http://localhost:3100";
 const TALK = "otel-at-scale";
-const KEY = "spk-otel-at-scale";
+const KEY =
+  process.env.ROOM_KEY ??
+  (existsSync(".room-keys.json") ? (JSON.parse(readFileSync(".room-keys.json", "utf8")) as Record<string, string>)[TALK] : undefined);
+if (!KEY) {
+  console.error("No room key: run `npm run seed` first, or set ROOM_KEY.");
+  process.exit(1);
+}
 
 const lines: [number, string][] = JSON.parse(readFileSync("data/otel-at-scale-transcript.json", "utf8"));
 

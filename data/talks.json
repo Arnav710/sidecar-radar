@@ -14,7 +14,11 @@
       "networking"
     ],
     "is_recorded": false,
-    "speaker_token": "spk-sidecar-pitch"
+    "accessibility": {
+      "captions": true,
+      "step_free": true,
+      "quiet_room_nearby": false
+    }
   },
   {
     "id": "otel-at-scale",
@@ -32,7 +36,11 @@
       "sampling"
     ],
     "is_recorded": true,
-    "speaker_token": "spk-otel-at-scale"
+    "accessibility": {
+      "captions": true,
+      "step_free": true,
+      "quiet_room_nearby": false
+    }
   },
   {
     "id": "ebpf-security-101",
@@ -49,7 +57,11 @@
       "kernel"
     ],
     "is_recorded": true,
-    "speaker_token": "spk-ebpf-101"
+    "accessibility": {
+      "captions": true,
+      "step_free": true,
+      "quiet_room_nearby": false
+    }
   },
   {
     "id": "platform-golden-paths",
@@ -66,7 +78,11 @@
       "backstage"
     ],
     "is_recorded": true,
-    "speaker_token": "spk-golden-paths"
+    "accessibility": {
+      "captions": true,
+      "step_free": true,
+      "quiet_room_nearby": true
+    }
   },
   {
     "id": "llm-latency-k8s",
@@ -85,7 +101,11 @@
       "latency"
     ],
     "is_recorded": true,
-    "speaker_token": "spk-llm-latency"
+    "accessibility": {
+      "captions": false,
+      "step_free": false,
+      "quiet_room_nearby": false
+    }
   },
   {
     "id": "tail-sampling-deep-dive",
@@ -103,7 +123,11 @@
       "collector"
     ],
     "is_recorded": false,
-    "speaker_token": "spk-tail-deep-dive"
+    "accessibility": {
+      "captions": false,
+      "step_free": true,
+      "quiet_room_nearby": false
+    }
   },
   {
     "id": "gitops-rollbacks",
@@ -121,7 +145,11 @@
       "incident response"
     ],
     "is_recorded": true,
-    "speaker_token": "spk-gitops-rollbacks"
+    "accessibility": {
+      "captions": false,
+      "step_free": true,
+      "quiet_room_nearby": false
+    }
   },
   {
     "id": "first-kubecon",
@@ -138,6 +166,10 @@
       "getting started"
     ],
     "is_recorded": true,
-    "speaker_token": "spk-first-year"
+    "accessibility": {
+      "captions": true,
+      "step_free": true,
+      "quiet_room_nearby": false
+    }
   }
 ]

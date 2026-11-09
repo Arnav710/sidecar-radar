@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { offsetSince } from "@sidecar/shared";
 import { m } from "@sidecar/shared/otel";
 import { getTalk } from "@/lib/talks";
@@ -11,7 +12,8 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const { id } = await params;
   const talk = await getTalk(id);
   if (!talk) return Response.json({ error: "talk not found" }, { status: 404 });
-  if (req.headers.get("x-room-key") !== talk.speaker_token) {
+  // A talk without a room key accepts no captions (fail closed).
+  if (!talk.speaker_token || req.headers.get("x-room-key") !== talk.speaker_token) {
     return Response.json({ error: "wrong room key" }, { status: 403 });
   }
 
@@ -21,10 +23,10 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
 
   const now = new Date();
   const offset_s = typeof body.offset_s === "number" ? Math.round(body.offset_s) : offsetSince(talk.start, now);
-  await addLine({ talk_id: talk.id, room_id: talk.room_id, offset_s, ts: now.toISOString(), text: text.slice(0, 2000) });
+  await addLine({ id: randomUUID(), talk_id: talk.id, room_id: talk.room_id, offset_s, ts: now.toISOString(), text: text.slice(0, 2000) });
 
   // Caption lag = speech finalized on the room laptop -> searchable in ES.
-  // This is the "captions within 3 seconds" SLO.
+  // This is the caption-lag SLO.
   const attrs = { "sidecar.room.id": talk.room_id, "sidecar.caption.source": body.source === "replay" ? "replay" : "room_laptop" };
   m().captions.add(1, attrs);
   if (typeof body.spoken_at === "number") m().captionLag.record(Math.max(0, Date.now() - body.spoken_at), attrs);

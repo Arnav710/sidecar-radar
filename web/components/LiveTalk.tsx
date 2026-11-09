@@ -6,7 +6,10 @@ import { formatOffset, offsetSince } from "@sidecar/shared";
 import { Logo } from "./Logo";
 import { roomLabel, timeLabel } from "./format";
 
-type PublicTalk = { id: string; title: string; speaker: string; room_id: string; start: string; end: string; level: string };
+type PublicTalk = {
+  id: string; title: string; speaker: string; room_id: string; start: string; end: string; level: string;
+  accessibility?: { captions: boolean; step_free: boolean; quiet_room_nearby: boolean };
+};
 
 type Card =
   | { kind: "answer"; id: string; question: string; data: AskResponse }
@@ -45,8 +48,9 @@ export function LiveTalk({ talk }: { talk: PublicTalk }) {
         setConnected(true);
         if (data.lines.length) {
           setLines((prev) => {
-            const seen = new Set(prev.map((l) => l.offset_s));
-            return [...prev, ...data.lines.filter((l) => !seen.has(l.offset_s))].sort((a, b) => a.offset_s - b.offset_s);
+            // The server overlaps polls on purpose; drop lines we already have.
+            const seen = new Set(prev.map((l) => l.id));
+            return [...prev, ...data.lines.filter((l) => !seen.has(l.id))].sort((a, b) => a.offset_s - b.offset_s || a.ts.localeCompare(b.ts));
           });
         }
       } catch {
@@ -121,14 +125,15 @@ export function LiveTalk({ talk }: { talk: PublicTalk }) {
     if (!c.same_talk) return;
     autoScroll.current = false;
     const box = captionsBox.current;
-    const line = document.getElementById(`line-${c.offset_s}`);
+    // Citations point at a second in the talk; jump to the first line at that second.
+    const line = box?.querySelector<HTMLElement>(`[data-offset="${c.offset_s}"]`);
     if (box && line) box.scrollTo({ top: line.offsetTop - box.clientHeight / 2, behavior: "smooth" });
     setFlash(c.offset_s);
     setTimeout(() => setFlash(null), 1800);
   };
 
   const sizes = ["text-xl sm:text-2xl", "text-2xl sm:text-[2rem]", "text-3xl sm:text-[2.6rem]"];
-  const latest = lines.at(-1)?.offset_s;
+  const latest = lines.at(-1)?.id;
 
   return (
     <div className="min-h-dvh bg-ink text-paper [background-image:radial-gradient(rgba(255,246,230,0.06)_1px,transparent_1px)] [background-size:22px_22px]">
@@ -146,7 +151,13 @@ export function LiveTalk({ talk }: { talk: PublicTalk }) {
           <Logo dark />
           <div className="ml-2 hidden min-w-0 flex-1 sm:block">
             <p className="truncate font-display text-lg font-bold">{talk.title}</p>
-            <p className="text-sm text-paper/60">{talk.speaker}</p>
+            <p className="text-sm text-paper/60">
+              {talk.speaker}
+              {/* Accessibility metadata (conference rule 3). */}
+              {talk.accessibility?.step_free && <span className="ml-2">· ♿ step-free</span>}
+              {talk.accessibility?.quiet_room_nearby && <span className="ml-2">· 🤫 quiet room nearby</span>}
+              {talk.accessibility && !talk.accessibility.step_free && <span className="ml-2">· stairs only</span>}
+            </p>
           </div>
           <span className="chip ml-auto border-paper bg-lilac text-ink">{roomLabel(talk.room_id)}</span>
           <span className="chip border-paper bg-tangerine text-white">
@@ -188,11 +199,11 @@ export function LiveTalk({ talk }: { talk: PublicTalk }) {
             )}
             <ol className="space-y-4">
               {lines.map((l) => {
-                const isLatest = l.offset_s === latest;
+                const isLatest = l.id === latest;
                 return (
                   <li
-                    key={l.offset_s}
-                    id={`line-${l.offset_s}`}
+                    key={l.id}
+                    data-offset={l.offset_s}
                     className={`grid animate-rise grid-cols-[3.5rem_1fr] gap-3 rounded-xl transition-colors ${flash === l.offset_s ? "bg-sun/25" : ""}`}
                   >
                     <span className="pt-2 font-mono text-xs text-paper/40">{formatOffset(l.offset_s)}</span>

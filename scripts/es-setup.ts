@@ -36,7 +36,7 @@ const indices: Record<string, Record<string, unknown>> = {
     accessibility: { properties: { captions: { type: "boolean" }, step_free: { type: "boolean" }, quiet_room_nearby: { type: "boolean" } } },
   },
   "sidecar-transcripts": {
-    talk_id: kw, room_id: kw, offset_s: int, ts: date, ...searchable("text"),
+    id: kw, talk_id: kw, room_id: kw, offset_s: int, ts: date, ...searchable("text"),
   },
   "sidecar-questions": {
     id: kw, uid: kw, talk_id: kw, offset_s: int, ts: date, ...searchable("text"),

@@ -29,7 +29,7 @@ export default async function RoomPage({
     <RoomCapture
       talk={{ id: talk.id, title: talk.title, speaker: talk.speaker, room_id: talk.room_id, start: talk.start }}
       roomKey={key ?? ""}
-      keyOk={key === talk.speaker_token}
+      keyOk={Boolean(talk.speaker_token) && key === talk.speaker_token}
       joinUrl={joinUrl}
       qrSvg={qrSvg}
     />
