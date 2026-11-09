@@ -1,5 +1,5 @@
-import { randomUUID } from "node:crypto";
-import { formatOffset, type Folder, type Note, type NoteKind } from "@sidecar/shared";
+import { createHash, randomUUID } from "node:crypto";
+import { FOLDER, formatOffset, type Folder, type Note, type NoteKind } from "@sidecar/shared";
 import { es, INDEX } from "./es";
 import { listTalks } from "./talks";
 
@@ -7,7 +7,7 @@ import { listTalks } from "./talks";
 // kept in folders. Everything is scoped to the browser's anonymous uid, and
 // nothing here logs note text (Gitar rule 8).
 
-const DEFAULT_FOLDERS = ["Ideas to try", "Follow-ups", "People to meet"];
+const DEFAULT_FOLDERS = [FOLDER.ideas, FOLDER.followUps, FOLDER.people, FOLDER.questions, FOLDER.catchUps];
 const KINDS: NoteKind[] = ["note", "highlight", "favorite"];
 
 // ---- Folders ----
@@ -37,9 +37,33 @@ export async function createFolder(uid: string, rawName: unknown): Promise<Folde
   const existing = await listFolders(uid);
   if (existing.some((f) => f.name.toLowerCase() === name.toLowerCase())) return { error: "You already have a folder with that name." };
   if (existing.length >= 30) return { error: "That is the most folders you can have." };
-  const folder: Folder = { id: randomUUID(), uid, name, created_at: new Date().toISOString() };
-  await es().index({ index: INDEX.folders, id: folder.id, document: folder, refresh: "wait_for" });
+  // The id comes from the owner and the lowercased name, and op_type "create" fails if it
+  // exists, so two saves racing to make the same folder can't create it twice.
+  const folder: Folder = { id: folderId(uid, name), uid, name, created_at: new Date().toISOString() };
+  try {
+    await es().index({ index: INDEX.folders, id: folder.id, document: folder, op_type: "create", refresh: "wait_for" });
+  } catch (err) {
+    if ((err as { meta?: { statusCode?: number } }).meta?.statusCode !== 409) throw err;
+    return { error: "You already have a folder with that name." };
+  }
   return folder;
+}
+
+/** One id per owner and folder name (case-insensitive). */
+function folderId(uid: string, name: string): string {
+  return createHash("sha256").update(`${uid}|${name.toLowerCase()}`).digest("hex").slice(0, 24);
+}
+
+/** The folder with this name (any capitalisation), made on the spot if it doesn't exist yet. */
+export async function ensureFolder(uid: string, rawName: string): Promise<Folder | null> {
+  const name = rawName.trim().slice(0, 40);
+  if (!name) return null;
+  const find = async () => (await listFolders(uid)).find((f) => f.name.toLowerCase() === name.toLowerCase());
+  const existing = await find();
+  if (existing) return existing;
+  const made = await createFolder(uid, name);
+  if (!("error" in made)) return made;
+  return (await find()) ?? null; // another save made it a moment ago, or the folder limit was hit
 }
 
 export async function deleteFolder(uid: string, id: string): Promise<boolean> {

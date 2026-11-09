@@ -11,6 +11,7 @@ function Svg({ children, size = 18, className, fill = "none" }: IconProps & { ch
   );
 }
 
+export const IconPeople = (p: IconProps) => <Svg {...p}><circle cx="9" cy="8" r="3" /><circle cx="17" cy="9" r="2.5" /><path d="M3 19a6 6 0 0 1 12 0M14 19a4.5 4.5 0 0 1 7-3.7" /></Svg>;
 export const IconHome = (p: IconProps) => <Svg {...p}><path d="M4 11l8-7 8 7v8a1 1 0 0 1-1 1h-4v-6H9v6H5a1 1 0 0 1-1-1z" /></Svg>;
 export const IconCalendar = (p: IconProps) => <Svg {...p}><rect x="4" y="5" width="16" height="15" rx="2" /><path d="M8 3v4M16 3v4M4 10h16" /></Svg>;
 export const IconBook = (p: IconProps) => <Svg {...p}><path d="M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3z" /><path d="M5 17a3 3 0 0 1 3-3h11" /></Svg>;

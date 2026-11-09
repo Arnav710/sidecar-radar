@@ -1,3 +1,4 @@
+import { queueJob } from "@/lib/worker";
 import { NextResponse } from "next/server";
 import { DEFAULT_CONFERENCE_ID } from "@/lib/conferences";
 import { currentUid, isAnonymous } from "@/lib/identity";
@@ -30,7 +31,9 @@ export async function PUT(req: Request) {
   if (!parsed.ok) return NextResponse.json({ error: parsed.error }, { status: 400 });
 
   try {
-    return NextResponse.json(await saveSchedule(uid, confOf(req), parsed.blocks));
+    const saved = await saveSchedule(uid, confOf(req), parsed.blocks);
+    queueJob("rebuild-person", { uid }); // refresh this person's matching doc
+    return NextResponse.json(saved);
   } catch {
     return NextResponse.json({ error: "Could not save the schedule." }, { status: 502 });
   }

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ApplyResponse, AskResponse, CaptionsResponse, CatchUpResponse, Citation, ExplainResponse, Folder, NextStop, Note, TranscriptLine } from "@sidecar/shared";
-import { formatOffset, offsetSince } from "@sidecar/shared";
+import { classifyChat, FOLDER, formatOffset, offsetSince } from "@sidecar/shared";
 import { roomLabel, timeLabel } from "./format";
 import { IconArrowLeft, IconBookmark, IconCheck, IconMic, IconPencil, IconSend, IconSparkle, IconStar, IconTrash, IconX } from "./Icons";
 
@@ -13,11 +13,16 @@ export interface SessionTalk {
 }
 
 type Card = {
-  id: string; kind: "catchup" | "apply" | "ask" | "explain"; title: string; at: number;
+  id: string; kind: "catchup" | "apply" | "ask" | "explain" | "note"; title: string; at: number;
   pending?: boolean; error?: string; body?: string; citations?: Citation[]; nextStops?: NextStop[];
+  /** The notebook folder this card was filed in automatically. */
+  saved?: string;
 };
 
-const KIND_LABEL: Record<Card["kind"], string> = { catchup: "Catch up", apply: "For your work", ask: "Your question", explain: "Explained again" };
+/** The folder an assistant card is filed under. Auto-save and the manual button both use this. */
+const folderFor = (k: Card["kind"]) => (k === "ask" ? FOLDER.questions : k === "apply" ? FOLDER.ideas : FOLDER.catchUps);
+
+const KIND_LABEL: Record<Card["kind"], string> = { catchup: "Catch up", apply: "For your work", ask: "Your question", explain: "Explained again", note: "Note" };
 const TEXT_SIZES = ["text-[0.9375rem]", "text-base", "text-lg"];
 const POLL_MS = 1500;
 
@@ -46,6 +51,7 @@ export function TalkSession({ talk, conference, serverNow }: { talk: SessionTalk
   const [pinMoment, setPinMoment] = useState(true);
   const [about, setAbout] = useState<{ text: string; offset: number } | null>(null);
   const [atBottom, setAtBottom] = useState(true);
+  const [autoSave, setAutoSave] = useState(true);
   const since = useRef<string | undefined>(undefined);
   const box = useRef<HTMLDivElement>(null);
   const autoScroll = useRef(true);
@@ -78,6 +84,15 @@ export function TalkSession({ talk, conference, serverNow }: { talk: SessionTalk
     setSaved(n.notes.some((x) => x.kind === "favorite"));
   }, [talk.id]);
   useEffect(() => { loadNotes().catch(() => {}); }, [loadNotes]);
+
+  // Remember the auto-save choice on this device (storage can be blocked, so it is optional).
+  useEffect(() => {
+    try { if (localStorage.getItem("sidecar_autosave") === "off") setAutoSave(false); } catch { /* fine without it */ }
+  }, []);
+  const changeAutoSave = (on: boolean) => {
+    setAutoSave(on);
+    try { localStorage.setItem("sidecar_autosave", on ? "on" : "off"); } catch { /* fine without it */ }
+  };
 
   // Captions: poll while the talk is live, and read the full transcript once when it has ended.
   useEffect(() => {
@@ -162,6 +177,24 @@ export function TalkSession({ talk, conference, serverNow }: { talk: SessionTalk
   const addCard = (c: Omit<Card, "at">) => setCards((all) => [{ ...c, at: elapsed }, ...all]);
   const finish = (id: string, patch: Partial<Card>) => setCards((all) => all.map((c) => (c.id === id ? { ...c, pending: false, ...patch } : c)));
 
+  /**
+   * File something in the notebook by folder name (the folder is made if needed).
+   * Returns where it really went, as the server reports it, or null if saving failed.
+   */
+  async function saveToNotebook(text: string, folder: string, cardId?: string): Promise<string | null> {
+    const res = await fetch("/api/notes", json({
+      kind: "note", talk_id: talk.id, conference_id: conference, text, folder_name: folder,
+      offset_s: phase === "waiting" ? undefined : offsetSince(talk.start),
+    })).catch(() => null);
+    if (!res?.ok) return null;
+    // Trust the server's answer: if the folder couldn't be made, the note was saved unfiled.
+    const saved = (await res.json().catch(() => ({}))) as { folder?: { name: string } | null };
+    const where = saved.folder?.name ?? "Notebook (unfiled)";
+    if (cardId) setCards((all) => all.map((c) => (c.id === cardId ? { ...c, saved: where } : c)));
+    await loadNotes();
+    return where;
+  }
+
   /** POST and read JSON, throwing the server's own error message on a non-OK answer. */
   async function post<T>(url: string, init: RequestInit = { method: "POST" }): Promise<T> {
     const res = await fetch(url, init);
@@ -175,33 +208,55 @@ export function TalkSession({ talk, conference, serverNow }: { talk: SessionTalk
     const titles = { catchup: "Catching you up…", apply: "Connecting this to your work…", explain: "Explaining the last 30 seconds…" };
     addCard({ id, kind, title: titles[kind], pending: true });
     try {
+      let title: string;
+      let body: string;
       if (kind === "catchup") {
         const d = await post<CatchUpResponse>(`/api/talks/${talk.id}/catchup`);
-        finish(id, { title: `So far, ${formatOffset(d.covered_s)} in`, body: d.summary });
+        title = `So far, ${formatOffset(d.covered_s)} in`;
+        body = d.summary;
       } else if (kind === "apply") {
         const d = await post<ApplyResponse>(`/api/talks/${talk.id}/apply`);
-        finish(id, { title: "How this applies to you", body: d.text });
+        title = "How this applies to you";
+        body = d.text;
       } else {
         const d = await post<ExplainResponse>(`/api/talks/${talk.id}/signal`, json({ type: "lost", level: "curious beginner" }));
-        finish(id, { title: "The last 30 seconds, again", body: d.explanation });
+        title = "The last 30 seconds, again";
+        body = d.explanation;
       }
+      finish(id, { title, body });
+      // Ideas for your own work go with your ideas; recaps go with the other catch-ups.
+      if (autoSave) saveToNotebook(`${title}\n${body}`, folderFor(kind), id);
     } catch (err) {
       finish(id, { title: "Something went wrong", error: (err as Error).message || "Couldn't reach Sidecar. Try again." });
     }
   }
 
+  /** The one box for everything: a question gets answered, "note: …" gets kept. Both end up in the notebook. */
   async function ask(e: React.FormEvent) {
     e.preventDefault();
     const q = question.trim();
     if (!q) return;
+    const chat = classifyChat(q);
+    // The Enter key submits the form even when Send is disabled, so check here too:
+    // questions need the talk to have started (notes are fine any time). Keep the text.
+    if (chat.intent === "question" && !ready) return say("Questions open when the session starts. Notes work now: start with note:");
     setQuestion("");
     const id = crypto.randomUUID();
+
+    if (chat.intent === "note") {
+      addCard({ id, kind: "note", title: "Saving your note…", pending: true });
+      const where = await saveToNotebook(chat.text, chat.folder, id);
+      finish(id, where ? { title: `Saved to ${where}`, body: chat.text, saved: where } : { title: "Couldn't save that", error: "Try again in a moment." });
+      return;
+    }
+
     addCard({ id, kind: "ask", title: q, pending: true });
     try {
       const res = await fetch(`/api/talks/${talk.id}/ask`, json({ question: q }));
       const data = (await res.json()) as AskResponse & { error?: string };
       if (!res.ok) throw new Error(data.error);
       finish(id, { body: data.answer, citations: data.citations, nextStops: data.next_stops });
+      if (autoSave) saveToNotebook(`Q: ${q}\nA: ${data.answer}`, FOLDER.questions, id);
     } catch (err) {
       finish(id, { error: (err as Error).message || "Something went wrong." });
     }
@@ -237,6 +292,8 @@ export function TalkSession({ talk, conference, serverNow }: { talk: SessionTalk
             <span className="pill">{roomLabel(talk.room_id)}</span>
             <span className="pill">{timeLabel(talk.start)} – {timeLabel(talk.end)}</span>
             <span className="pill capitalize">{talk.level}</span>
+            <Link href="/connect" className="pill bg-lime hover:bg-sun">🤝 Your matches</Link>
+            <Link href={`/talk/${talk.id}/graph`} className="pill hover:bg-sun" target="_blank">🕸️ People graph</Link>
           </div>
           <h1 className="mt-3 text-2xl leading-tight sm:text-3xl">{talk.title}</h1>
           <p className="mt-1 text-sm text-ink-soft">
@@ -344,14 +401,18 @@ export function TalkSession({ talk, conference, serverNow }: { talk: SessionTalk
                     {ready ? "Ask a question or catch up on what you missed. Answers come from what the speaker actually said." : "Catch-up, questions and answers unlock when the session starts."}
                   </p>
                 )}
-                {cards.map((c) => <AnswerCard key={c.id} card={c} onJump={jumpTo} onSave={() => saveNote(undefined, { text: [c.kind === "ask" ? `Q: ${c.title}` : c.title, c.body].filter(Boolean).join("\n"), offset: c.at })} />)}
+                {cards.map((c) => <AnswerCard key={c.id} card={c} onJump={jumpTo} onSave={() => saveToNotebook([c.kind === "ask" ? `Q: ${c.title}` : c.title, c.body].filter(Boolean).join("\n"), folderFor(c.kind), c.id)} />)}
               </div>
 
+              <label className="flex items-center gap-2 border-t border-line px-3 py-2 text-xs text-ink-soft">
+                <input type="checkbox" className="accent-accent" checked={autoSave} onChange={(e) => changeAutoSave(e.target.checked)} />
+                Save everything here to my notebook automatically
+              </label>
               <form onSubmit={ask} className="flex items-end gap-2 border-t border-line p-3">
                 <label htmlFor="ask" className="sr-only">Ask about this talk</label>
-                <textarea id="ask" rows={1} className="input max-h-28 min-h-[2.5rem] resize-none" placeholder={ready ? "Ask about this talk…" : "Questions open when the session starts"} disabled={!ready}
+                <textarea id="ask" rows={1} className="input max-h-28 min-h-[2.5rem] resize-none" placeholder={ready ? "Ask a question, or jot something: note: email Maya" : "Questions open at the start. You can still write: note: …"}
                   value={question} onChange={(e) => setQuestion(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); e.currentTarget.form?.requestSubmit(); } }} />
-                <button type="submit" className="btn btn-primary btn-icon h-10 w-10" disabled={!ready || !question.trim()} aria-label="Send question"><IconSend size={16} /></button>
+                <button type="submit" className="btn btn-primary btn-icon h-10 w-10" disabled={!question.trim() || (!ready && classifyChat(question).intent === "question")} aria-label="Send"><IconSend size={16} /></button>
               </form>
             </>
           ) : (
@@ -463,7 +524,11 @@ function AnswerCard({ card: c, onJump, onSave }: { card: Card; onJump: (c: Citat
           <ul className="mt-1 space-y-1">{c.nextStops.map((s) => <li key={s.talk_id}><Link className="font-medium hover:underline" href={`/talk/${s.talk_id}`}>{s.title}</Link> <span className="text-ink-soft">· {timeLabel(s.start)}</span></li>)}</ul>
         </div>
       )}
-      {c.body && !c.pending && <button type="button" className="btn btn-ghost btn-sm mt-2 -ml-2" onClick={onSave}><IconPencil size={14} /> Save to notes</button>}
+      {c.saved ? (
+        <p className="mt-2 flex items-center gap-1.5 text-xs font-medium text-good"><IconCheck size={13} /> Saved to {c.saved}</p>
+      ) : (
+        c.body && !c.pending && <button type="button" className="btn btn-ghost btn-sm mt-2 -ml-2" onClick={onSave}><IconPencil size={14} /> Save to notebook</button>
+      )}
     </article>
   );
 }

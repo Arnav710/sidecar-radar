@@ -28,6 +28,19 @@ export function NotebookView({ talkTitles, conference }: { talkTitles: Record<st
   }, [conference]);
   useEffect(() => { load().catch(() => setLoaded(true)); }, [load]);
 
+  // Keep the notebook live: what you save in a session shows up here without a refresh.
+  useEffect(() => {
+    const refresh = () => { if (!document.hidden) load().catch(() => {}); };
+    const timer = setInterval(refresh, 5000);
+    window.addEventListener("focus", refresh);
+    document.addEventListener("visibilitychange", refresh);
+    return () => {
+      clearInterval(timer);
+      window.removeEventListener("focus", refresh);
+      document.removeEventListener("visibilitychange", refresh);
+    };
+  }, [load]);
+
   const visible = useMemo(() => {
     const written = notes.filter((n) => n.kind !== "favorite");
     switch (filter.kind) {
