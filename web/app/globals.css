@@ -113,3 +113,10 @@
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 1ms !important; animation-iteration-count: 1 !important; transition-duration: 1ms !important; }
 }
+
+/* Notebook "Export PDF": print only the notes. */
+@media print {
+  nav, aside, footer, .print\:hidden { display: none !important; }
+  body { background: white !important; }
+  .card { break-inside: avoid; box-shadow: none !important; }
+}
