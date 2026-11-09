@@ -82,3 +82,29 @@ export async function explainWindow(talkTitle: string, lines: string[], level: s
     220,
   );
 }
+
+/**
+ * The speaker's write-up: what landed, where people got lost, what to change.
+ * Only aggregated themes and transcript lines go in, never a question's text
+ * and never anything identifying (review rules 8 and 11).
+ */
+export async function speakerReport(
+  talkTitle: string,
+  themes: { topic: string; questions: number }[],
+  spikes: { minute: number; lost: number; said: string[] }[],
+): Promise<string> {
+  const themeText = themes.length
+    ? themes.map((t) => `- ${t.topic} (${t.questions} questions)`).join("\n")
+    : "- (no themes with enough people to report yet)";
+  const spikeText = spikes.length
+    ? spikes.map((s) => `- minute ${s.minute}, ${s.lost} "I'm lost" taps, while saying: ${s.said.join(" ")}`).join("\n")
+    : "- (no confusion spikes)";
+  return complete(
+    "speaker_report",
+    "You advise a conference speaker straight after their talk. Write three short labelled paragraphs: " +
+      "'What landed', 'Where people got lost', 'What to change next time'. Be specific and kind, and point at the " +
+      "moment in the talk. Never speculate about individuals; you only have counts.",
+    `Talk: ${talkTitle}\n\nWhat people asked about:\n${themeText}\n\nConfusion spikes:\n${spikeText}`,
+    400,
+  );
+}
