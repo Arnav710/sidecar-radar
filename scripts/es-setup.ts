@@ -52,6 +52,10 @@ const indices: Record<string, Record<string, unknown>> = {
     ...searchable("working_on"), ...searchable("stuck_on"), ...searchable("want_to_meet"),
     goals: kw, topic_levels: { type: "flattened" }, pace: kw, open_to_meet: { type: "boolean" }, updated_at: date,
   },
+  // The schedule an attendee saved. The blocks are stored as-is and never searched.
+  "sidecar-schedules": {
+    uid: kw, blocks: { type: "object", enabled: false }, updated_at: date,
+  },
   // Side events from Luma, Slack and X (not part of the main talk schedule).
   "sidecar-events": {
     id: kw, source: kw, title: { type: "text" }, ...searchable("description"),
