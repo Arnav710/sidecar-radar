@@ -174,16 +174,30 @@ export function TalkSession({ talk, conference, serverNow }: { talk: SessionTalk
   const addCard = (c: Omit<Card, "at">) => setCards((all) => [{ ...c, at: elapsed }, ...all]);
   const finish = (id: string, patch: Partial<Card>) => setCards((all) => all.map((c) => (c.id === id ? { ...c, pending: false, ...patch } : c)));
 
-  /** File something in the notebook by folder name (the folder is made if needed) and mark the card as saved. */
-  async function saveToNotebook(text: string, folder: string, cardId?: string): Promise<boolean> {
+  /**
+   * File something in the notebook by folder name (the folder is made if needed).
+   * Returns where it really went, as the server reports it, or null if saving failed.
+   */
+  async function saveToNotebook(text: string, folder: string, cardId?: string): Promise<string | null> {
     const res = await fetch("/api/notes", json({
       kind: "note", talk_id: talk.id, conference_id: conference, text, folder_name: folder,
       offset_s: phase === "waiting" ? undefined : offsetSince(talk.start),
     })).catch(() => null);
-    if (!res?.ok) return false;
-    if (cardId) setCards((all) => all.map((c) => (c.id === cardId ? { ...c, saved: folder } : c)));
+    if (!res?.ok) return null;
+    // Trust the server's answer: if the folder couldn't be made, the note was saved unfiled.
+    const saved = (await res.json().catch(() => ({}))) as { folder?: { name: string } | null };
+    const where = saved.folder?.name ?? "Notebook (unfiled)";
+    if (cardId) setCards((all) => all.map((c) => (c.id === cardId ? { ...c, saved: where } : c)));
     await loadNotes();
-    return true;
+    return where;
+  }
+
+  /** POST and read JSON, throwing the server's own error message on a non-OK answer. */
+  async function post<T>(url: string, init: RequestInit = { method: "POST" }): Promise<T> {
+    const res = await fetch(url, init);
+    const data = (await res.json().catch(() => ({}))) as T & { error?: string };
+    if (!res.ok) throw new Error(data.error ?? "Couldn't reach Sidecar. Try again.");
+    return data;
   }
 
   async function run(kind: "catchup" | "apply" | "explain") {
@@ -194,23 +208,23 @@ export function TalkSession({ talk, conference, serverNow }: { talk: SessionTalk
       let title: string;
       let body: string;
       if (kind === "catchup") {
-        const d = (await (await fetch(`/api/talks/${talk.id}/catchup`, { method: "POST" })).json()) as CatchUpResponse;
+        const d = await post<CatchUpResponse>(`/api/talks/${talk.id}/catchup`);
         title = `So far, ${formatOffset(d.covered_s)} in`;
         body = d.summary;
       } else if (kind === "apply") {
-        const d = (await (await fetch(`/api/talks/${talk.id}/apply`, { method: "POST" })).json()) as ApplyResponse;
+        const d = await post<ApplyResponse>(`/api/talks/${talk.id}/apply`);
         title = "How this applies to you";
         body = d.text;
       } else {
-        const d = (await (await fetch(`/api/talks/${talk.id}/signal`, json({ type: "lost", level: "curious beginner" }))).json()) as ExplainResponse;
+        const d = await post<ExplainResponse>(`/api/talks/${talk.id}/signal`, json({ type: "lost", level: "curious beginner" }));
         title = "The last 30 seconds, again";
         body = d.explanation;
       }
       finish(id, { title, body });
       // Ideas for your own work go with your ideas; recaps go with the other catch-ups.
       if (autoSave) saveToNotebook(`${title}\n${body}`, kind === "apply" ? FOLDER.ideas : FOLDER.catchUps, id);
-    } catch {
-      finish(id, { title: "Something went wrong", error: "Couldn't reach Sidecar. Try again." });
+    } catch (err) {
+      finish(id, { title: "Something went wrong", error: (err as Error).message || "Couldn't reach Sidecar. Try again." });
     }
   }
 
@@ -219,14 +233,17 @@ export function TalkSession({ talk, conference, serverNow }: { talk: SessionTalk
     e.preventDefault();
     const q = question.trim();
     if (!q) return;
+    const chat = classifyChat(q);
+    // The Enter key submits the form even when Send is disabled, so check here too:
+    // questions need the talk to have started (notes are fine any time). Keep the text.
+    if (chat.intent === "question" && !ready) return say("Questions open when the session starts. Notes work now: start with note:");
     setQuestion("");
     const id = crypto.randomUUID();
 
-    const chat = classifyChat(q);
     if (chat.intent === "note") {
       addCard({ id, kind: "note", title: "Saving your note…", pending: true });
-      const ok = await saveToNotebook(chat.text, chat.folder, id);
-      finish(id, ok ? { title: `Saved to ${chat.folder}`, body: chat.text, saved: chat.folder } : { title: "Couldn't save that", error: "Try again in a moment." });
+      const where = await saveToNotebook(chat.text, chat.folder, id);
+      finish(id, where ? { title: `Saved to ${where}`, body: chat.text, saved: where } : { title: "Couldn't save that", error: "Try again in a moment." });
       return;
     }
 

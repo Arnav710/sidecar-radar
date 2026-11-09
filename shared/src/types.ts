@@ -139,6 +139,13 @@ export interface Profile extends ProfileInput {
 export type OutsideSource = "luma" | "slack" | "x";
 export type OutsideKind = "networking" | "workshop" | "social" | "other";
 
+/** Accessibility facts for a side event. null means unknown: these come from the event text, so we only ever say yes when it is stated. */
+export interface EventAccessibility {
+  captions: boolean | null;
+  step_free: boolean | null;
+  quiet_room_nearby: boolean | null;
+}
+
 /** A side event found on Luma, or announced in Slack or on X. Times are ISO 8601 in UTC. */
 export interface OutsideEvent {
   /** Stable id: `${source}:${id from that source}`, so re-syncing never duplicates. */
@@ -152,6 +159,8 @@ export interface OutsideEvent {
   url?: string;
   kind: OutsideKind;
   topics: string[];
+  /** Accessibility metadata (repo rule 3). */
+  accessibility: EventAccessibility;
   synced_at: string;
 }
 
@@ -220,6 +229,8 @@ export interface PlanAlternative {
   why: string;
   /** True for a talk that clashes with a pick: its captions and answers stay available in Sidecar. */
   catch_up?: boolean;
+  /** Accessibility metadata from the talk or event (repo rule 3). null means unknown. */
+  accessibility?: EventAccessibility;
 }
 
 /**
@@ -243,6 +254,8 @@ export interface PlanBlock {
   alternatives?: PlanAlternative[];
   /** Handoff blocks only: "open" is just a free slot, "held" is reserved for a match. */
   handoff?: "open" | "held";
+  /** Accessibility metadata from the talk or event (repo rule 3). null means unknown. */
+  accessibility?: EventAccessibility;
 }
 
 export interface Plan {

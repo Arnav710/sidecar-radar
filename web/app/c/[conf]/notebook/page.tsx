@@ -21,7 +21,7 @@ export default async function NotebookPage({ params }: { params: Promise<{ conf:
         <h1 className="mt-1 text-3xl sm:text-4xl">Notebook</h1>
         <p className="mt-2 text-ink-soft">Your notes, highlights and saved talks, in folders. Export them any time, or use them to build your recap.</p>
         <div className="mt-8">
-          <NotebookView talkTitles={talkTitles} />
+          <NotebookView talkTitles={talkTitles} conference={conf.id} />
         </div>
       </Page>
     </AppShell>

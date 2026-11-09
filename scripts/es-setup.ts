@@ -81,6 +81,7 @@ const indices: Record<string, Record<string, unknown>> = {
   "sidecar-events": {
     id: kw, source: kw, title: { type: "text" }, ...searchable("description"),
     start: date, end: date, location: { type: "text" }, url: kw, kind: kw, topics: kw, synced_at: date,
+    accessibility: { properties: { captions: { type: "boolean" }, step_free: { type: "boolean" }, quiet_room_nearby: { type: "boolean" } } },
   },
 };
 

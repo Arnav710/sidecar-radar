@@ -1,7 +1,8 @@
-import { planDay, type Plan, type PlanBlock, type Profile, type SavedSchedule, type Talk } from "@sidecar/shared";
+import { planDay, type EventAccessibility, type Plan, type PlanBlock, type Profile, type SavedSchedule, type Talk } from "@sidecar/shared";
 import { log } from "@sidecar/shared/otel";
 import { listEvents } from "./events";
 import { es, hybridRetriever, INDEX } from "./es";
+import { isAnonymous } from "./identity";
 import { profileQueryText } from "./profiles";
 import { listTalks } from "./talks";
 
@@ -47,17 +48,24 @@ export async function buildPlan(profile: Profile, conference: string): Promise<P
 /** Each attendee has one saved schedule per conference. */
 const scheduleId = (uid: string, conference: string) => `${uid}:${conference}`;
 
+/**
+ * The saved schedule, or null when there really is none. Any other failure (a
+ * timeout, ES down) is thrown, so a brief outage can never look like "no schedule"
+ * and make the page build a fresh plan over the attendee's edits.
+ */
 export async function getSchedule(uid: string, conference: string): Promise<SavedSchedule | null> {
-  if (!process.env.ES_URL) return null;
+  if (!process.env.ES_URL || isAnonymous(uid)) return null;
   try {
     const res = await es().get<SavedSchedule>({ index: INDEX.schedules, id: scheduleId(uid, conference) });
     return res._source ?? null;
-  } catch {
-    return null;
+  } catch (err) {
+    if ((err as { meta?: { statusCode?: number } }).meta?.statusCode === 404) return null;
+    throw err;
   }
 }
 
 export async function saveSchedule(uid: string, conference: string, blocks: PlanBlock[]): Promise<SavedSchedule> {
+  if (isAnonymous(uid)) throw new Error("Cannot save a schedule without an id cookie.");
   const doc: SavedSchedule = { uid, blocks, updated_at: new Date().toISOString() };
   await es().index({ index: INDEX.schedules, id: scheduleId(uid, conference), document: doc, refresh: "wait_for" });
   return doc;
@@ -74,7 +82,8 @@ export async function chooseTalk(uid: string, conference: string, talk: Talk): P
 
   const overlaps = (b: PlanBlock) => Date.parse(b.start) < Date.parse(talk.end) && Date.parse(talk.start) < Date.parse(b.end);
   const displaced = blocks.filter((b) => b.kind !== "handoff" && overlaps(b));
-  const kept = blocks.filter((b) => !(overlaps(b) && (b.kind !== "handoff" || b.handoff !== "held")));
+  // Scanning in means you are in this talk now, so nothing else may stay booked at this time (no double-booking).
+  const kept = blocks.filter((b) => !overlaps(b));
 
   const alternatives = displaced.slice(0, 2).map((b) => ({
     kind: b.kind === "event" ? ("event" as const) : ("talk" as const), ref: b.ref ?? "", title: b.title, start: b.start, end: b.end,
@@ -82,7 +91,7 @@ export async function chooseTalk(uid: string, conference: string, talk: Talk): P
   }));
   kept.push({
     id: `talk:${talk.id}`, kind: "talk", start: talk.start, end: talk.end, title: talk.title, ref: talk.id, room_id: talk.room_id,
-    why: "You scanned this talk's code", ...(alternatives.length ? { alternatives } : {}),
+    why: "You scanned this talk's code", ...(alternatives.length ? { alternatives } : {}), accessibility: talk.accessibility,
   });
   kept.sort((a, b) => a.start.localeCompare(b.start));
   await saveSchedule(uid, conference, kept);
@@ -92,6 +101,14 @@ const KINDS = ["talk", "event", "handoff"] as const;
 
 function str(v: unknown, max: number): string | undefined {
   return typeof v === "string" && v.trim() ? v.trim().slice(0, max) : undefined;
+}
+
+/** Accessibility facts sent by the browser: only true/false/null survive. */
+function accessibilityOf(v: unknown): EventAccessibility | undefined {
+  if (!v || typeof v !== "object") return undefined;
+  const a = v as Record<string, unknown>;
+  const flag = (x: unknown) => (typeof x === "boolean" ? x : null);
+  return { captions: flag(a.captions), step_free: flag(a.step_free), quiet_room_nearby: flag(a.quiet_room_nearby) };
 }
 
 function iso(v: unknown): string | null {
@@ -117,11 +134,15 @@ export function parseBlocks(body: unknown): { ok: true; blocks: PlanBlock[] } | 
     seen.add(id);
 
     const alternatives = Array.isArray(raw.alternatives)
-      ? (raw.alternatives as PlanBlock["alternatives"])!.slice(0, 3).map((a) => ({
+      ? (raw.alternatives as NonNullable<PlanBlock["alternatives"]>)
+          .filter((a) => a && typeof a === "object") // a null entry would otherwise crash with a 500
+          .slice(0, 3)
+          .map((a) => ({
           kind: a.kind === "event" ? ("event" as const) : ("talk" as const),
           ref: str(a.ref, 120) ?? "", title: str(a.title, 140) ?? "", start: iso(a.start) ?? start, end: iso(a.end) ?? end,
           room_id: str(a.room_id, 40), location: str(a.location, 120), url: str(a.url, 300), why: str(a.why, 300) ?? "",
           ...(a.catch_up ? { catch_up: true } : {}),
+          ...(accessibilityOf(a.accessibility) ? { accessibility: accessibilityOf(a.accessibility) } : {}),
         }))
       : undefined;
 
@@ -129,8 +150,16 @@ export function parseBlocks(body: unknown): { ok: true; blocks: PlanBlock[] } | 
       id, kind, start, end, title, ref: str(raw.ref, 120), room_id: str(raw.room_id, 40), location: str(raw.location, 120),
       url: str(raw.url, 300), why: str(raw.why, 300), ...(alternatives?.length ? { alternatives } : {}),
       ...(kind === "handoff" ? { handoff: raw.handoff === "held" ? ("held" as const) : ("open" as const) } : {}),
+      ...(accessibilityOf(raw.accessibility) ? { accessibility: accessibilityOf(raw.accessibility) } : {}),
     });
   }
   blocks.sort((a, b) => a.start.localeCompare(b.start));
+
+  // Never double-book (repo rule 2): talks, events and reserved handoffs may not overlap.
+  // Open handoff slots are just free time, so they may sit under anything.
+  const firm = blocks.filter((b) => b.kind !== "handoff" || b.handoff === "held");
+  for (let i = 1; i < firm.length; i++) {
+    if (firm[i].start < firm[i - 1].end) return { ok: false, error: `"${firm[i].title}" overlaps "${firm[i - 1].title}".` };
+  }
   return { ok: true, blocks };
 }

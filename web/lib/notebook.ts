@@ -1,4 +1,4 @@
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { FOLDER, formatOffset, type Folder, type Note, type NoteKind } from "@sidecar/shared";
 import { es, INDEX } from "./es";
 import { listTalks } from "./talks";
@@ -37,19 +37,33 @@ export async function createFolder(uid: string, rawName: unknown): Promise<Folde
   const existing = await listFolders(uid);
   if (existing.some((f) => f.name.toLowerCase() === name.toLowerCase())) return { error: "You already have a folder with that name." };
   if (existing.length >= 30) return { error: "That is the most folders you can have." };
-  const folder: Folder = { id: randomUUID(), uid, name, created_at: new Date().toISOString() };
-  await es().index({ index: INDEX.folders, id: folder.id, document: folder, refresh: "wait_for" });
+  // The id comes from the owner and the lowercased name, and op_type "create" fails if it
+  // exists, so two saves racing to make the same folder can't create it twice.
+  const folder: Folder = { id: folderId(uid, name), uid, name, created_at: new Date().toISOString() };
+  try {
+    await es().index({ index: INDEX.folders, id: folder.id, document: folder, op_type: "create", refresh: "wait_for" });
+  } catch (err) {
+    if ((err as { meta?: { statusCode?: number } }).meta?.statusCode !== 409) throw err;
+    return { error: "You already have a folder with that name." };
+  }
   return folder;
+}
+
+/** One id per owner and folder name (case-insensitive). */
+function folderId(uid: string, name: string): string {
+  return createHash("sha256").update(`${uid}|${name.toLowerCase()}`).digest("hex").slice(0, 24);
 }
 
 /** The folder with this name (any capitalisation), made on the spot if it doesn't exist yet. */
 export async function ensureFolder(uid: string, rawName: string): Promise<Folder | null> {
   const name = rawName.trim().slice(0, 40);
   if (!name) return null;
-  const existing = (await listFolders(uid)).find((f) => f.name.toLowerCase() === name.toLowerCase());
+  const find = async () => (await listFolders(uid)).find((f) => f.name.toLowerCase() === name.toLowerCase());
+  const existing = await find();
   if (existing) return existing;
   const made = await createFolder(uid, name);
-  return "error" in made ? null : made;
+  if (!("error" in made)) return made;
+  return (await find()) ?? null; // another save made it a moment ago, or the folder limit was hit
 }
 
 export async function deleteFolder(uid: string, id: string): Promise<boolean> {
@@ -109,8 +123,9 @@ export async function createNote(uid: string, input: NoteInput): Promise<Note> {
   return note;
 }
 
-export async function listNotes(uid: string, filter: { talk_id?: string; kind?: NoteKind } = {}): Promise<Note[]> {
+export async function listNotes(uid: string, filter: { talk_id?: string; kind?: NoteKind; conference_id?: string } = {}): Promise<Note[]> {
   const must: object[] = [{ term: { uid } }];
+  if (filter.conference_id) must.push({ term: { conference_id: filter.conference_id } });
   if (filter.talk_id) must.push({ term: { talk_id: filter.talk_id } });
   if (filter.kind) must.push({ term: { kind: filter.kind } });
   const res = await es().search<Note>({ index: INDEX.notes, size: 500, query: { bool: { filter: must } }, sort: [{ created_at: "desc" }] });
@@ -144,8 +159,8 @@ export async function updateNote(uid: string, id: string, patch: { text?: unknow
 // ---- Export ----
 
 /** The whole notebook as Markdown, so it can become a report later. */
-export async function exportMarkdown(uid: string): Promise<string> {
-  const [folders, notes, { talks }] = await Promise.all([listFolders(uid), listNotes(uid), listTalks()]);
+export async function exportMarkdown(uid: string, conference_id?: string): Promise<string> {
+  const [folders, notes, { talks }] = await Promise.all([listFolders(uid), listNotes(uid, { conference_id }), listTalks()]);
   const title = new Map(talks.map((t) => [t.id, t.title]));
   const talkName = (id: string) => title.get(id) ?? id;
 

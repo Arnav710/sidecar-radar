@@ -5,12 +5,12 @@ import { createNote, deleteNote, ensureFolder, listNotes, parseNoteInput } from 
 
 export const dynamic = "force-dynamic";
 
-/** The current browser's notes. Filter with ?talk=<id> and/or ?kind=note|highlight|favorite. */
+/** The current browser's notes. Filter with ?conf=<conference>, ?talk=<id> and/or ?kind=note|highlight|favorite. */
 export async function GET(req: Request) {
   if (!process.env.ES_URL) return NextResponse.json({ notes: [] });
   const q = new URL(req.url).searchParams;
   const kind = q.get("kind") as NoteKind | null;
-  const notes = await listNotes(await currentUid(), { talk_id: q.get("talk") ?? undefined, kind: kind ?? undefined });
+  const notes = await listNotes(await currentUid(), { talk_id: q.get("talk") ?? undefined, kind: kind ?? undefined, conference_id: q.get("conf") ?? undefined });
   return NextResponse.json({ notes });
 }
 
@@ -36,6 +36,12 @@ export async function POST(req: Request) {
   const uid = await currentUid();
   const input = parsed.value;
   const folderName = (body as { folder_name?: unknown })?.folder_name;
-  if (!input.folder_id && typeof folderName === "string") input.folder_id = (await ensureFolder(uid, folderName))?.id;
-  return NextResponse.json(await createNote(uid, input));
+  let folder: { id: string; name: string } | null = null;
+  if (!input.folder_id && typeof folderName === "string") {
+    const f = await ensureFolder(uid, folderName);
+    if (f) folder = { id: f.id, name: f.name };
+    input.folder_id = f?.id;
+  }
+  // Say which folder the note really landed in (null = unfiled), so the app never claims a folder it didn't use.
+  return NextResponse.json({ ...(await createNote(uid, input)), folder });
 }

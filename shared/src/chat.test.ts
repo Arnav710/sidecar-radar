@@ -18,3 +18,8 @@ test("notes are filed by what they are about", () => {
   assert.equal(classifyChat("remind me to send the repo link").folder, FOLDER.followUps);
   assert.equal(classifyChat("note: meet the Kargo maintainers").folder, FOLDER.people);
 });
+
+test("anything ending in ? is a question, even if it starts like a note", () => {
+  assert.deepEqual(classifyChat("Remember the diagram earlier, what was the third box?"), { intent: "question" });
+  assert.deepEqual(classifyChat("Save time by sampling at the edge?"), { intent: "question" });
+});

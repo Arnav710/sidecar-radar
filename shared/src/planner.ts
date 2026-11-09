@@ -1,5 +1,5 @@
 import { VENUE_TZ_NAME } from "./time";
-import type { OutsideEvent, Plan, PlanAlternative, PlanBlock, Profile, Talk } from "./types";
+import type { EventAccessibility, OutsideEvent, Plan, PlanAlternative, PlanBlock, Profile, Talk } from "./types";
 
 // Builds a recommended day for one attendee. It is a pure function (no network,
 // no clock unless you pass one) so it is easy to test: the web app fetches the
@@ -26,6 +26,7 @@ interface Candidate {
   topics: string[];
   level?: Talk["level"];
   networking: boolean;
+  accessibility?: EventAccessibility;
   /** 0 to 1: how closely the search matched this to the profile (1 = best). */
   relevance: number;
   score: number;
@@ -53,13 +54,14 @@ function toCandidates(input: PlanInput): Candidate[] {
   return [
     ...talks.map((t): Candidate => ({
       key: `talk:${t.id}`, kind: "talk", ref: t.id, title: t.title, start: Date.parse(t.start), end: Date.parse(t.end),
-      room_id: t.room_id, topics: t.topics.map((x) => x.toLowerCase()), level: t.level, networking: false,
+      room_id: t.room_id, topics: t.topics.map((x) => x.toLowerCase()), level: t.level, networking: false, accessibility: t.accessibility,
       relevance: relevance[`talk:${t.id}`] ?? 0, score: 0, reasons: [],
     })),
     ...events.map((e): Candidate => ({
       key: `event:${e.id}`, kind: "event", ref: e.id, title: e.title, start: Date.parse(e.start),
       end: e.end ? Date.parse(e.end) : Date.parse(e.start) + 60 * MINUTE,
       location: e.location, url: e.url, topics: e.topics.map((x) => x.toLowerCase()), networking: e.kind === "networking" || e.kind === "social",
+      accessibility: e.accessibility,
       relevance: relevance[`event:${e.id}`] ?? 0, score: 0, reasons: [],
     })),
   ].filter((c) => Number.isFinite(c.start) && Number.isFinite(c.end) && c.end > c.start);
@@ -110,6 +112,7 @@ function toAlternative(c: Candidate, catchUp = false): PlanAlternative {
   return {
     kind: c.kind, ref: c.ref, title: c.title, start: new Date(c.start).toISOString(), end: new Date(c.end).toISOString(),
     room_id: c.room_id, location: c.location, url: c.url, why: whyLine(c), ...(catchUp ? { catch_up: true } : {}),
+    ...(c.accessibility ? { accessibility: c.accessibility } : {}),
   };
 }
 
@@ -151,6 +154,7 @@ export function planDay(input: PlanInput): Plan {
     blocks.push({
       id: c.key, kind: c.kind, start: new Date(c.start).toISOString(), end: new Date(c.end).toISOString(), title: c.title, ref: c.ref,
       room_id: c.room_id, location: c.location, url: c.url, why: whyLine(c), ...(alternatives.length > 0 ? { alternatives } : {}),
+      ...(c.accessibility ? { accessibility: c.accessibility } : {}),
     });
 
     // Leave space for a handoff when there is a real gap before the next pick.
