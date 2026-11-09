@@ -345,7 +345,11 @@ export interface ConnectResponse {
   cards: BlindCard[];
 }
 
-export interface GraphNode { id: string; label: string; demo: boolean; asked: boolean; me?: boolean }
+export interface GraphNode {
+  id: string; label: string; demo: boolean; asked: boolean; me?: boolean;
+  /** The problem cluster this person is in (from their classified questions). */
+  cluster: string;
+}
 export interface GraphEdge { source: string; target: string; kind: "same_problem" | "same_interests"; score: number }
 export interface GraphResponse { talk_id: string; nodes: GraphNode[]; edges: GraphEdge[]; generated_at: string }
 

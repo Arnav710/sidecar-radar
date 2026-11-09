@@ -11,7 +11,18 @@ import { roomLabel } from "./format";
 // (by hand, not next/dynamic, so our ref reaches the graph and we can tune forces).
 type FG = typeof import("react-force-graph-2d").default;
 
-type Node = { id: string; label: string; demo: boolean; asked: boolean; me?: boolean; bornAt: number; x?: number; y?: number };
+type Node = { id: string; label: string; demo: boolean; asked: boolean; me?: boolean; cluster: string; bornAt: number; x?: number; y?: number };
+
+/** One colour per problem cluster, so the room's "groups" are visible at a glance. */
+const CLUSTER_COLORS: Record<string, string> = {
+  "Tracing cost & sampling": "#c6f432",
+  "Collector memory": "#7cd4ff",
+  "LLM latency & GPUs": "#ff8fc7",
+  "Platform adoption": "#ffd23f",
+  "GitOps & rollbacks": "#b9a6ff",
+  "Security & eBPF": "#5eead4",
+  "Just exploring": "#d6d3d1",
+};
 type Link = { source: string | Node; target: string | Node; kind: "same_problem" | "same_interests"; score: number; bornAt: number };
 
 const POLL_MS = 3000;
@@ -112,8 +123,20 @@ export function PeopleGraph({ talk, embedded = false }: { talk: { id: string; ti
 
   const stats = useMemo(() => {
     const problems = data.links.filter((l) => l.kind === "same_problem").length;
-    return { people: data.nodes.length, problems, interests: data.links.length - problems };
+    const clusters = new Map<string, number>();
+    data.nodes.forEach((n) => clusters.set(n.cluster, (clusters.get(n.cluster) ?? 0) + 1));
+    return { people: data.nodes.length, problems, interests: data.links.length - problems, clusters: [...clusters.entries()].sort((a, b) => b[1] - a[1]) };
   }, [data]);
+
+  const clusterLegend = (
+    <div className="flex flex-wrap gap-1.5">
+      {stats.clusters.map(([name, n]) => (
+        <span key={name} className="chip border-paper text-ink" style={{ background: CLUSTER_COLORS[name] ?? "#d6d3d1" }}>
+          {name} · {n}
+        </span>
+      ))}
+    </div>
+  );
 
   if (embedded) {
     return (
@@ -122,8 +145,9 @@ export function PeopleGraph({ talk, embedded = false }: { talk: { id: string; ti
           <span className="chip border-paper bg-paper text-ink">{stats.people} people</span>
           <span className="chip border-paper bg-tangerine text-white">{stats.problems} same problem</span>
           <span className="chip border-paper bg-sky text-ink">{stats.interests} same interests</span>
-          <span className="ml-auto font-mono text-paper/60">You = orange · bold = same problem</span>
+          <span className="ml-auto font-mono text-paper/60">You = orange ring · bold = same problem</span>
         </div>
+        <div className="px-4 pt-2">{clusterLegend}</div>
         <div className="h-[380px]">
       <div ref={box} className="relative h-full" aria-label="People graph">
         {data.nodes.length === 0 && (
@@ -140,6 +164,7 @@ export function PeopleGraph({ talk, embedded = false }: { talk: { id: string; ti
           graphData={data}
           backgroundColor="rgba(0,0,0,0)"
           cooldownTicks={120}
+          autoPauseRedraw={false}
           d3VelocityDecay={0.3}
           linkWidth={(l) => ((l as Link).kind === "same_problem" ? 2 + (l as Link).score * 4 : 1)}
           linkColor={(l) => ((l as Link).kind === "same_problem" ? COLORS.problem : COLORS.interests)}
@@ -152,11 +177,13 @@ export function PeopleGraph({ talk, embedded = false }: { talk: { id: string; ti
             const node = n as Node;
             const age = Math.min(1, (Date.now() - node.bornAt) / 600);
             const r = (node.me ? 16 : 12) * (0.4 + 0.6 * age);
-            const fill = node.me ? COLORS.problem : node.asked ? COLORS.asked : node.demo ? COLORS.demo : COLORS.schedule;
-            if (node.me) {
+            const fill = CLUSTER_COLORS[node.cluster] ?? COLORS.schedule;
+            // You: a thick orange ring. Someone who just joined: a pulsing halo for a few seconds.
+            const fresh = Date.now() - node.bornAt < 6000 && known.current.nodes.size > 1;
+            if (node.me || fresh) {
               ctx.beginPath();
-              ctx.arc(node.x ?? 0, node.y ?? 0, r + 5, 0, 2 * Math.PI);
-              ctx.fillStyle = "rgba(255,107,53,0.25)";
+              ctx.arc(node.x ?? 0, node.y ?? 0, r + (node.me ? 6 : 4 + 3 * Math.abs(Math.sin(Date.now() / 250))), 0, 2 * Math.PI);
+              ctx.fillStyle = node.me ? "rgba(255,107,53,0.45)" : "rgba(255,210,63,0.5)";
               ctx.fill();
             }
             ctx.beginPath();
@@ -222,6 +249,7 @@ export function PeopleGraph({ talk, embedded = false }: { talk: { id: string; ti
           graphData={data}
           backgroundColor="rgba(0,0,0,0)"
           cooldownTicks={120}
+          autoPauseRedraw={false}
           d3VelocityDecay={0.3}
           linkWidth={(l) => ((l as Link).kind === "same_problem" ? 2 + (l as Link).score * 4 : 1)}
           linkColor={(l) => ((l as Link).kind === "same_problem" ? COLORS.problem : COLORS.interests)}
@@ -269,11 +297,13 @@ export function PeopleGraph({ talk, embedded = false }: { talk: { id: string; ti
         )}
       </div>
 
-      <footer className="flex flex-wrap items-center gap-5 border-t-2 border-ink-2 px-6 py-3 text-sm text-paper/70">
+      <div className="border-t-2 border-ink-2 px-6 pt-3">
+        <p className="mb-1.5 font-mono text-xs uppercase tracking-widest text-paper/50">What people here are stuck on</p>
+        {clusterLegend}
+      </div>
+      <footer className="flex flex-wrap items-center gap-5 px-6 py-3 text-sm text-paper/70">
         <Legend swatch={<span className="inline-block h-1 w-8 rounded bg-tangerine" />} text="Same problem (from questions asked)" />
         <Legend swatch={<span className="inline-block w-8 border-t-2 border-dashed border-paper/40" />} text="Same interests (rare talks in common)" />
-        <Legend swatch={<span className="inline-block h-3 w-3 rounded-full border-2 border-ink bg-lime" />} text="Asked in this talk" />
-        <Legend swatch={<span className="inline-block h-3 w-3 rounded-full border-2 border-ink bg-lilac" />} text="Demo attendee" />
         <span className="ml-auto font-mono text-xs">Names stay hidden until both people say yes.</span>
       </footer>
     </div>

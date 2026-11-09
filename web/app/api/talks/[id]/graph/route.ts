@@ -9,6 +9,22 @@ export const dynamic = "force-dynamic";
 
 const MAX_PEOPLE = 40;
 
+/** Group people by what they're stuck on, from their classified problems/topics. */
+const CLUSTERS: [string, RegExp][] = [
+  ["Tracing cost & sampling", /trac|sampl|span/],
+  ["Collector memory", /collector|memory|oom/],
+  ["LLM latency & GPUs", /llm|gpu|inference|kv-cache|latency/],
+  ["Platform adoption", /platform|golden|developer|backstage/],
+  ["GitOps & rollbacks", /gitops|argo|rollback/],
+  ["Security & eBPF", /ebpf|security|runtime/],
+];
+function clusterOf(p: PersonDoc): string {
+  const text = [...p.problem_list, ...p.topics].join(" ").toLowerCase();
+  // Collector memory is more specific than tracing, so check it first when both match.
+  if (/collector|memory|oom/.test(text) && /memory|oom/.test(text)) return "Collector memory";
+  return CLUSTERS.find(([, re]) => re.test(text))?.[0] ?? "Just exploring";
+}
+
 /** Blind label for the projector: role and experience, never a name. */
 function label(p: PersonDoc): string {
   const role = p.role || "Attendee";
@@ -47,7 +63,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     });
 
     const meUid = await currentUid();
-    const nodes: GraphNode[] = people.map((p) => ({ id: p.uid, label: p.uid === meUid ? "You" : label(p), demo: p.demo, asked: p.asked_in.includes(id), me: p.uid === meUid }));
+    const nodes: GraphNode[] = people.map((p) => ({ id: p.uid, label: p.uid === meUid ? "You" : label(p), demo: p.demo, asked: p.asked_in.includes(id), me: p.uid === meUid, cluster: clusterOf(p) }));
     set({ "sidecar.graph.nodes": nodes.length, "sidecar.graph.edges": edges.size });
     const body: GraphResponse = { talk_id: id, nodes, edges: [...edges.values()], generated_at: new Date().toISOString() };
     return Response.json(body);
