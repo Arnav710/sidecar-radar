@@ -4,18 +4,24 @@
 // different people. Nothing is faked on the server: every number you see is
 // measured on these real requests. About 50 requests, roughly a minute and a half.
 //
+// Run it ONCE: every run stores its captions, questions and taps for good, so
+// repeats would duplicate the talk transcript and the speaker report. It refuses
+// to run a second time unless you pass --again. To keep the real talk clean,
+// point it at a separate demo talk with DEMO_TALK=<talk id>.
+//
 //   npm run demo:traffic                                   # against http://localhost:3100
 //   SIDECAR_URL=https://sidecar.cnh.radarhq.io npm run demo:traffic
 //
 // The room key comes from ROOM_KEY, or from .room-keys.json written by
 // `npm run seed` (never committed). Run `npm run seed` once first.
 
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 
 try { process.loadEnvFile(".env"); } catch { /* use the real environment */ }
 
 const BASE = process.env.SIDECAR_URL || "http://localhost:3100";
-const TALK = "otel-at-scale";
+const TALK = process.env.DEMO_TALK || "otel-at-scale";
+const RAN_MARK = ".demo-traffic-ran"; // local marker file, never committed
 const KEY =
   process.env.ROOM_KEY ??
   (existsSync(".room-keys.json") ? (JSON.parse(readFileSync(".room-keys.json", "utf8")) as Record<string, string>)[TALK] : undefined);
@@ -79,10 +85,15 @@ async function taps() {
 }
 
 async function main() {
+  if (existsSync(RAN_MARK) && !process.argv.includes("--again")) {
+    console.error(`Already ran (${RAN_MARK}). Repeats duplicate the transcript and speaker report. Pass --again if you really want another burst.`);
+    process.exit(1);
+  }
   console.log(`demo traffic into ${BASE}/talk/${TALK}`);
   await captions(0, 13);
   await Promise.all([questions(), taps()]);
   await captions(13, 27);
+  writeFileSync(RAN_MARK, new Date().toISOString());
   console.log(`done: ${ok} ok, ${failed} failed. Open ${BASE}/status (reload a few times: each pod counts its own requests).`);
 }
 
