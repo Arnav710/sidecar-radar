@@ -9,3 +9,6 @@
 node_modules/
 npm-debug.log*
 .DS_Store
+
+# Local Elasticsearch credentials
+elastic-start-local/
