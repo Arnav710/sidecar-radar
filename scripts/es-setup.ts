@@ -45,6 +45,18 @@ const indices: Record<string, Record<string, unknown>> = {
   "sidecar-signals": {
     uid_hash: kw, talk_id: kw, offset_s: int, ts: date, type: kw,
   },
+  // One profile per attendee. The free-text fields are searchable by meaning so
+  // the scheduler can match them to talks and events.
+  "sidecar-profiles": {
+    uid: kw, display_name: { type: "text" }, role: kw, years: int, company_type: kw,
+    ...searchable("working_on"), ...searchable("stuck_on"), ...searchable("want_to_meet"),
+    goals: kw, topic_levels: { type: "flattened" }, pace: kw, open_to_meet: { type: "boolean" }, updated_at: date,
+  },
+  // Side events from Luma, Slack and X (not part of the main talk schedule).
+  "sidecar-events": {
+    id: kw, source: kw, title: { type: "text" }, ...searchable("description"),
+    start: date, end: date, location: { type: "text" }, url: kw, kind: kw, topics: kw, synced_at: date,
+  },
 };
 
 async function main() {
