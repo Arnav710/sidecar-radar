@@ -41,6 +41,7 @@ export function ScheduleView({ conference }: { conference: string }) {
   const [saved, setSaved] = useState<Set<string>>(new Set());
   const [sources, setSources] = useState<SourceInfo[]>([]);
   const [refreshing, setRefreshing] = useState(false);
+  const [confirmingRebuild, setConfirmingRebuild] = useState(false);
   const [now, setNow] = useState(() => Date.now());
   const dirty = useRef(false);
   const q = `conf=${encodeURIComponent(conference)}`;
@@ -129,7 +130,7 @@ export function ScheduleView({ conference }: { conference: string }) {
   }
 
   async function rebuild() {
-    if (!window.confirm("Build a new schedule? This replaces your current one.")) return;
+    setConfirmingRebuild(false);
     setStatus("loading");
     await loadPlan().catch(() => setStatus("error"));
   }
@@ -174,7 +175,15 @@ export function ScheduleView({ conference }: { conference: string }) {
         <button type="button" className={`btn ${editing ? "border-accent bg-accent-soft text-accent-ink" : ""}`} aria-pressed={editing} onClick={() => setEditing((e) => !e)}>
           <IconPlus size={16} /> {editing ? "Done editing" : "Edit schedule"}
         </button>
-        <button type="button" className="btn" onClick={rebuild}><IconRefresh size={16} /> Rebuild</button>
+        {confirmingRebuild ? (
+          <span className="flex items-center gap-1.5 rounded-lg border border-line-strong bg-paper px-2 py-1 text-sm">
+            Replace your schedule?
+            <button type="button" className="btn btn-primary btn-sm" onClick={rebuild}>Yes, rebuild</button>
+            <button type="button" className="btn btn-ghost btn-sm" onClick={() => setConfirmingRebuild(false)}>Cancel</button>
+          </span>
+        ) : (
+          <button type="button" className="btn" onClick={() => setConfirmingRebuild(true)}><IconRefresh size={16} /> Rebuild</button>
+        )}
         <span role="status" className="ml-auto text-xs text-ink-soft">
           {saveState === "saving" ? "Saving…" : saveState === "saved" ? "Saved" : saveState === "error" ? "Could not save" : `${counts} planned`}
         </span>
