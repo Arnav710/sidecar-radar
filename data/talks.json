@@ -26,7 +26,7 @@
     "abstract": "We run 200 services and our tracing bill tripled. This talk walks through moving from head-based to tail-based sampling in the OpenTelemetry Collector, keeping every error and slow trace while dropping most healthy ones, plus how we sized collector memory so it stopped OOMing.",
     "speaker": "Maya Okafor",
     "room_id": "room-b",
-    "start_in_min": -3,
+    "start_in_min": -20,
     "duration_min": 40,
     "level": "advanced",
     "topics": [
