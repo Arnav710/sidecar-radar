@@ -25,7 +25,7 @@ One loop, end to end. Everything else in the app supports it. **Build this first
 | **7. Speaker report** | The **confusion timeline** (lost / got-it taps and questions per minute, with the transcript at each spike), questions clustered by theme, and an AI report on what to explain better next time. | Speaker |
 
 **Supporting features** (shown briefly so it feels like a complete product, built only after the loop works):
-- Search talks in plain English, "recommended for you" from your questions, add to My Schedule.
+- Search talks in plain English, with accessibility filters and badges (captions, step-free access, quiet room nearby, sign language); "recommended for you" from your questions; add to My Schedule.
 - "Explain the last 30 seconds" when you tap I'm lost.
 - Cross-room alerts: "Room B is talking about your topic right now" (Elasticsearch percolator).
 - Personal recap: talks attended, answers, people met and why.
