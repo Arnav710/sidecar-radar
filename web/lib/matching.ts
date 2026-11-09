@@ -80,10 +80,11 @@ export async function candidatesFor(me: PersonDoc, extra: object[] = [], size = 
   if (semantic && (ranked?.error || problemHits?.error) && isInferenceLimit({ meta: { body: ranked?.error ?? problemHits?.error } })) {
     return candidatesFor(me, extra, size, false);
   }
-  // "Same problem" = among the closest few by problem alone, within 10% of the best.
+  // "Same problem" = the closest 3 by problem alone, within 60% of the best. (10% was
+  // too tight: one near-identical match pushed out others with the same problem.)
   const pHits = problemHits?.hits?.hits ?? [];
   const best = pHits[0]?._score ?? 0;
-  const problemTop = new Set(pHits.filter((h) => h._score >= best * 0.9).slice(0, 3).map((h) => h._source.uid));
+  const problemTop = new Set(pHits.filter((h) => h._score >= best * 0.6).slice(0, 3).map((h) => h._source.uid));
 
   return (ranked?.hits?.hits ?? [])
     .filter((h) => h._score >= MIN_SCORE)
