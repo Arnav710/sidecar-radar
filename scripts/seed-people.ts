@@ -37,7 +37,7 @@ async function bulkWithRetry(operations: object[]) {
 async function main() {
   const people: DemoAttendee[] = JSON.parse(readFileSync("data/attendees.json", "utf8"));
   const talks = await es.mget<{ id: string; title: string; start: string; end: string; room_id: string }>({
-    index: "sidecar-talks", ids: [...new Set(people.flatMap((p) => p.talks))],
+    index: "sidecar-talks", ids: [...new Set([...people.flatMap((p) => p.talks), "sidecar-live-pitch"])],
   });
   const byId = new Map(talks.docs.flatMap((d) => ("_source" in d && d._source ? [[d._source.id, d._source] as const] : [])));
   const now = new Date().toISOString();
@@ -81,6 +81,24 @@ async function main() {
     ops.push({ index: { _index: "sidecar-signals", _id: `${uid}-pitch-lost` } }, { uid_hash: `demo-${i}`, talk_id: "sidecar-live-pitch", offset_s: 120 + i * 4, ts: now, type: "lost" });
     ops.push({ index: { _index: "sidecar-signals", _id: `${uid}-pitch-got` } }, { uid_hash: `demo-${i}`, talk_id: "sidecar-live-pitch", offset_s: 60 + i * 3, ts: now, type: "got_it" });
   });
+
+  // The pitch's first two minutes (said before the room laptop started), so the
+  // speaker report can quote what was being said when the minute-2 "lost" taps came in.
+  const pitch = byId.get("sidecar-live-pitch");
+  if (pitch) {
+    const intro: [number, string][] = [
+      [65, "Most teams sample traces at the start of a request, which is called head sampling."],
+      [90, "Head sampling decides before the request runs, so it can't know the request will fail."],
+      [118, "Tail sampling buffers every span of a trace in the collector and only decides once the trace is complete."],
+      [140, "So the decision policy can say: keep all errors, keep anything over two seconds, and keep one percent of the rest."],
+    ];
+    for (const [offset_s, text] of intro) {
+      const id = `sidecar-live-pitch-seed-${offset_s}`;
+      ops.push({ index: { _index: "sidecar-transcripts", _id: id } }, {
+        id, talk_id: pitch.id, room_id: pitch.room_id, offset_s, ts: new Date(Date.parse(pitch.start) + offset_s * 1000).toISOString(), text,
+      });
+    }
+  }
 
   const res = await bulkWithRetry(ops);
   if (res.errors) throw new Error(JSON.stringify(res.items.find((i) => i.index?.error)?.index?.error));
