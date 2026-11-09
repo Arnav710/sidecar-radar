@@ -1,4 +1,5 @@
 import { GOALS, LEVELS, PACES, type Goal, type Pace, type Profile, type ProfileInput, type SkillLevel } from "@sidecar/shared";
+import { isAnonymous } from "./identity";
 import { es, INDEX } from "./es";
 
 // Profile storage and validation. Profile text is personal, so nothing in this
@@ -57,7 +58,7 @@ export function parseProfileInput(body: unknown): Parsed {
 
 /** The saved profile for this browser, or null if they haven't made one (or ES isn't set up). */
 export async function getProfile(uid: string): Promise<Profile | null> {
-  if (!process.env.ES_URL) return null;
+  if (!process.env.ES_URL || isAnonymous(uid)) return null; // never read the shared "anonymous" profile
   try {
     const res = await es().get<Profile>({ index: INDEX.profiles, id: uid });
     return res._source ?? null;
@@ -67,6 +68,7 @@ export async function getProfile(uid: string): Promise<Profile | null> {
 }
 
 export async function saveProfile(uid: string, input: ProfileInput): Promise<Profile> {
+  if (isAnonymous(uid)) throw new Error("Cannot save a profile without an id cookie.");
   const profile: Profile = { ...input, uid, updated_at: new Date().toISOString() };
   await es().index({ index: INDEX.profiles, id: uid, document: profile, refresh: "wait_for" });
   return profile;
