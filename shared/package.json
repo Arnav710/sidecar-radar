@@ -1,0 +1,11 @@
+{
+  "name": "@sidecar/shared",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Types and pure helpers shared by web and worker. TypeScript source, transpiled by each consumer.",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "scripts": {
+    "test": "node --import tsx --test src/*.test.ts"
+  }
+}
