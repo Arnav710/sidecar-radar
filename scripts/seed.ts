@@ -42,8 +42,8 @@ async function main() {
   const lines: [number, string][] = JSON.parse(readFileSync("data/otel-at-scale-transcript.json", "utf8"));
   for (const [offset_s, text] of lines.filter(([o]) => o <= elapsed)) {
     ops.push(
-      { index: { _index: "sidecar-transcripts", _id: `otel-at-scale-${offset_s}` } } as never,
-      { talk_id: otel.id, room_id: otel.room_id, offset_s, ts: new Date(new Date(otel.start).getTime() + offset_s * 1000).toISOString(), text } as never,
+      { index: { _index: "sidecar-transcripts", _id: `otel-at-scale-seed-${offset_s}` } } as never,
+      { id: `otel-at-scale-seed-${offset_s}`, talk_id: otel.id, room_id: otel.room_id, offset_s, ts: new Date(new Date(otel.start).getTime() + offset_s * 1000).toISOString(), text } as never,
     );
   }
 

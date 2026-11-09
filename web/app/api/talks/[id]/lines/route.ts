@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { offsetSince } from "@sidecar/shared";
 import { getTalk } from "@/lib/talks";
 import { addLine } from "@/lib/transcripts";
@@ -20,6 +21,6 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
 
   const now = new Date();
   const offset_s = typeof body.offset_s === "number" ? Math.round(body.offset_s) : offsetSince(talk.start, now);
-  await addLine({ talk_id: talk.id, room_id: talk.room_id, offset_s, ts: now.toISOString(), text: text.slice(0, 2000) });
+  await addLine({ id: randomUUID(), talk_id: talk.id, room_id: talk.room_id, offset_s, ts: now.toISOString(), text: text.slice(0, 2000) });
   return Response.json({ ok: true, offset_s });
 }
