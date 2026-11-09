@@ -100,3 +100,22 @@ export async function explainWindow(talkTitle: string, lines: string[], level: s
     220,
   );
 }
+
+export interface KitInput {
+  problem: string;
+  sharedTalks: string[];
+  a: { role: string; working_on: string; problems: string[] };
+  b: { role: string; working_on: string; problems: string[] };
+}
+
+/** The conversation kit both people get when a match is mutual (JSON). */
+export async function conversationKit(input: KitInput): Promise<string> {
+  return complete(
+    "conversation_kit",
+    "Two conference attendees agreed to meet because they share a problem. Write a short conversation kit as JSON with keys " +
+      '"why" (one sentence, why these two), "opener" (one natural first line), "follow_ups" (array of 2 short questions), ' +
+      '"a_brings" and "b_brings" (one short phrase each, from their work). Friendly, specific, no names, no flattery.',
+    JSON.stringify(input),
+    300,
+  );
+}
