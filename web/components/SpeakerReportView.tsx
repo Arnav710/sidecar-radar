@@ -1,5 +1,6 @@
 import type { SpeakerReport } from "@sidecar/shared";
 import { roomLabel, timeLabel } from "./format";
+import { ClarityBar, ConfusionHeatmap, ReactionTimeline, ThemeBars, fillMinutes } from "./SpeakerCharts";
 
 // The speaker's view of their own talk. Everything on this page is a count:
 // no names, no ids, no question text, and nothing from fewer than
@@ -20,6 +21,10 @@ export function SpeakerReportView({ report }: { report: SpeakerReport }) {
   const { talk, timeline, clusters, spikes, totals } = report;
   const peak = Math.max(1, ...timeline.map((b) => b.lost + b.got_it + b.questions));
   const thin = timeline.filter((b) => b.withheld).length;
+  // Every minute of the talk, so quiet stretches show as gaps in the charts.
+  const durationMin = Math.max(1, Math.round((Date.parse(talk.end) - Date.parse(talk.start)) / 60_000));
+  const minutes = fillMinutes(timeline, durationMin);
+  const spikeMinutes = spikes.map((s) => s.minute);
 
   return (
     <div className="flex flex-col gap-10">
@@ -42,6 +47,11 @@ export function SpeakerReportView({ report }: { report: SpeakerReport }) {
         <Stat label="Questions" value={totals.questions} tone="var(--color-sky)" />
         <Stat label="I'm lost" value={totals.lost} tone="var(--color-tangerine)" />
         <Stat label="Got it" value={totals.got_it} tone="var(--color-lime)" />
+      </section>
+
+      <section className="sticker flex flex-col gap-3 p-6">
+        <h2 className="font-display text-2xl font-extrabold">How clear was it?</h2>
+        <ClarityBar lost={totals.lost} gotIt={totals.got_it} />
       </section>
 
       {report.summary ? (
@@ -69,7 +79,31 @@ export function SpeakerReportView({ report }: { report: SpeakerReport }) {
             Nothing yet. As soon as people start asking questions or tapping “I’m lost”, this fills in.
           </p>
         ) : (
-          <div className="sticker overflow-x-auto p-4">
+          <div className="flex flex-col gap-4">
+          <div className="sticker flex flex-col gap-4 p-4">
+            <ReactionTimeline minutes={minutes} spikeMinutes={spikeMinutes} />
+            <div>
+              <h3 className="mb-2 font-mono text-xs uppercase tracking-wider text-ink-soft">Confusion heatmap</h3>
+              <ConfusionHeatmap minutes={minutes} />
+            </div>
+            <p className="flex flex-wrap gap-3 font-mono text-xs text-ink-soft">
+              <span className="chip" style={{ background: "var(--color-tangerine)", color: "white" }}>
+                I&apos;m lost
+              </span>
+              <span className="chip" style={{ background: "var(--color-sky)" }}>
+                asked
+              </span>
+              <span className="chip" style={{ background: "var(--color-lime)" }}>
+                got it
+              </span>
+              <span className="self-center">▼ = a moment people got lost · hatched = withheld for privacy</span>
+            </p>
+          </div>
+          <details className="sticker p-4">
+            <summary className="cursor-pointer font-mono text-xs uppercase tracking-wider text-ink-soft">
+              Minute-by-minute table
+            </summary>
+          <div className="overflow-x-auto pt-3">
             <table className="w-full min-w-[30rem] border-collapse">
               <caption className="pb-3 text-left font-mono text-xs uppercase tracking-wider text-ink-soft">
                 Reactions per minute
@@ -113,18 +147,9 @@ export function SpeakerReportView({ report }: { report: SpeakerReport }) {
                 })}
               </tbody>
             </table>
-            <p className="mt-3 flex flex-wrap gap-3 font-mono text-xs text-ink-soft">
-              <span className="chip" style={{ background: "var(--color-tangerine)", color: "white" }}>
-                I&apos;m lost
-              </span>
-              <span className="chip" style={{ background: "var(--color-sky)" }}>
-                questions
-              </span>
-              <span className="chip" style={{ background: "var(--color-lime)" }}>
-                got it
-              </span>
-              {thin > 0 ? <span className="self-center">{thin} minute(s) withheld for privacy</span> : null}
-            </p>
+            {thin > 0 ? <p className="mt-3 font-mono text-xs text-ink-soft">{thin} minute(s) withheld for privacy</p> : null}
+          </div>
+          </details>
           </div>
         )}
       </section>
@@ -167,16 +192,9 @@ export function SpeakerReportView({ report }: { report: SpeakerReport }) {
             No theme has reached {report.min_people} people yet.
           </p>
         ) : (
-          <ul className="flex flex-col gap-2">
-            {clusters.map((c) => (
-              <li key={c.topic} className="sticker flex items-center justify-between gap-4 p-4">
-                <span className="font-display text-lg font-bold">{c.topic}</span>
-                <span className="font-mono text-xs tabular-nums text-ink-soft">
-                  {c.questions} questions · {c.people} people
-                </span>
-              </li>
-            ))}
-          </ul>
+          <div className="sticker p-5">
+            <ThemeBars clusters={clusters} />
+          </div>
         )}
       </section>
     </div>
