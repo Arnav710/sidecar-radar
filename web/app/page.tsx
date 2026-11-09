@@ -60,7 +60,7 @@ export default async function Home() {
           {!connected && <span className="chip bg-bubble">not connected to Elasticsearch yet</span>}
         </div>
 
-        {connected && talks.length === 0 && <p className="text-ink-soft">No talks yet.</p>}
+        {connected && talks.length === 0 && <p className="text-ink-soft">No talks yet. Run <code>npm run es:setup</code> then <code>npm run seed</code>.</p>}
 
         <div className="grid gap-4 sm:grid-cols-2">
           {[...live, ...rest].map((t, i) => (
