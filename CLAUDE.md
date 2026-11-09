@@ -1,10 +1,10 @@
 @AGENTS.md
 
-# Cloud Native Hackathon (WeMakeDevs) - Project Context & Roadmap
+# Cloud Native Hackathon (WeMakeDevs) - Project Context
 
-Handoff from a claude.ai chat. Read this fully before doing anything. The goal is to WIN this hackathon.
+Read this fully before doing anything. The goal is to WIN this hackathon.
 
-> **Product plan update (12:45 PM):** the product is **Sidecar** as described in [docs/PLAN.md](docs/PLAN.md) (what and why) and [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) (how). They **supersede §5 (Conference Galaxy), §7 (roadmap) and §8 (demo script) below**, including the chaos button: Radar's rules say don't break things on purpose. Sections 1–4, 6, 9 and 10 (rules, tracks, sponsor facts, setup, working agreements) still apply. Team/cluster: `sidecar`, namespace `team-sidecar`, URL https://sidecar.cnh.radarhq.io.
+> **The product is Sidecar.** What and why: [docs/PLAN.md](docs/PLAN.md). How: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). Read both before writing code. Build the hero loop in PLAN.md §1 first. Team/cluster: `sidecar`, namespace `team-sidecar`, URL https://sidecar.cnh.radarhq.io. Radar's rules say never break things on purpose for the demo.
 
 ## 1. Situation
 
@@ -18,8 +18,7 @@ Handoff from a claude.ai chat. Read this fully before doing anything. The goal i
   - Schedule: https://www.wemakedevs.org/hackathons/cnh/schedule
   - Community partners: https://www.wemakedevs.org/hackathons/cnh/partners
   - Registration: https://luma.com/cnh
-- Schedule (Mountain Time): 9:00 check-in/breakfast; 10:00 kickoff + talks; 11:00-2:00 build; 2:00 lunch + panel + more build; **5:30 PM SUBMISSION DEADLINE**; 5:30-6:30 presentations; 6:30-7:00 winners; after 7:00 After-Party (House of Kube, sign up on Luma).
-- At time of handoff it is about 11:25 AM. Roughly 6 hours remain. One-day build, so scope ruthlessly.
+- **Submission deadline: 5:30 PM Mountain Time.** One-day build, so scope ruthlessly.
 - Solo or team: a team of any size is allowed; one submission per participant/team.
 
 ## 2. Rules / must-haves (disqualification risks)
@@ -75,7 +74,7 @@ Radar (Skyhook):
 - Connect agent to Radar Cloud MCP: `claude mcp add radar-cloud --scope user --transport http https://api.radarhq.io/mcp` (signs in via browser).
 - Radar Cloud: https://app.radarhq.io (free for up to 3 clusters). Connect a cluster: https://radarhq.io/docs/cloud/connect-cluster
 - Hackathon team environment on Radar's cluster: https://join.cnh.radarhq.io (JOIN CODE is given at kickoff and at the Radar table).
-- Starter repo: https://github.com/skyhook-io/cnh-starter . Per the Resources page: copy it, connect your coding agent, ship through Radar's MCP, every push deploys through Argo CD. CONTENTS NOT YET READ - read its README first.
+- This repo was made from the starter (https://github.com/skyhook-io/cnh-starter). How we deploy and operate through Radar is in AGENTS.md (imported above) and docs/ARCHITECTURE.md §1: Service `app` port 80, app on `$PORT` 8080 with `/healthz` and `/readyz`, keys in Secret `app-credentials`, budget 2 CPU / 4 GiB of requests.
 - Kickoff talk was "Give your agent Radar: ship and debug on Kubernetes" (Nadav Erell, Roy Libman).
 - Radar's published benchmark claims (44/50 faults) are the vendor's own claims.
 
@@ -84,65 +83,25 @@ Elasticsearch:
 - `semantic_text` field + `copy_to` from a text field auto-generates embeddings. Hybrid search = `rrf` retriever combining a `match` on the text field and a `match` on the semantic_text field (needs ES 8.9+). Optional `text_similarity_reranker` on top.
 - Start with hybrid (BM25 + semantic) + RRF; it outperforms either alone with little tuning.
 
-## 5. The plan (decided in chat): "Conference Galaxy" on Kubernetes - one project, all four tracks
-
-Core idea: natural-language talk discovery for conferences, shown as a beautiful interactive map ("galaxy") where every talk is a star clustered by topic and a query lights up its neighbors. Query examples: "something on eBPF and security", "I'm new and big rooms stress me out". Hybrid search finds the right sessions even when words are not in the title.
-
-Features (build in priority order, cut from the bottom):
-1. Hybrid search over talks (Elasticsearch semantic_text + RRF) with a clean UI. [must]
-2. Galaxy map visualization of talks (2D embedding layout, query highlights neighbors). [the wow factor]
-3. "Build my day": turn results into a conflict-free personal schedule.
-4. Accessibility/inclusivity filters (captioned, quiet room, beginner-friendly, step-free) - this targets Merge Forward and the universal "conferences easier" criterion.
-5. Hallway matchmaker: attendee interests stored as vectors, find nearest people. [stretch]
-6. Chat assistant doing RAG over talk abstracts (OpenAI credits). [stretch, trace it with OpenLIT in Dash0]
-7. A "chaos" button to break the app on purpose for the demo (bad rollout or injected latency). [needed for Radar + Dash0 stories]
-
-Data: need talk data. Look for a public schedule export for the conference; fallback is ~80 realistic generated talks (title, abstract, speaker, room, time, tags, accessibility flags). Do not use private data.
-
-How each sponsor is used (this is what the judges check):
-- Gitar: EVERY feature goes through a PR (never push to main). Review instructions in `.gitar/review/` encode real rules: session times carry time zones, no room/speaker double-booking, accessibility metadata present, API and frontend stay consistent. A repository rule fires when the API/schedule data changes. Deliberately cause one CI failure and let auto-apply fix it. Keep screenshots.
-- Dash0: OpenTelemetry auto-instrumentation in the first hour (traces, logs, metrics; RUM on the frontend). Connect Dash0 MCP to the coding agent. Build a dashboard + an SLO (bonus), e.g. "search p95 < 500ms". In the demo, use Agent0/MCP to find the real cause of the induced slowdown.
-- Radar: deploy via the cnh-starter flow onto the provided team environment, shipping through Radar's MCP and Argo CD. Use Radar UI/MCP while building. In the demo: ship a bad rollout (pods still Ready), click Investigate, show root cause, ship the fix.
-- Elasticsearch: the only database for talks/speakers/attendees; search, recommendations and RAG all go through it.
-
-## 6. Setup checklist (do these first; accounts must be created by the human, not by Claude)
+## 5. Setup checklist (do these first; accounts must be created by the human, not by Claude)
 
 - [ ] GitHub account; create a PUBLIC repo (GitHub, not GitLab: Gitar's hackathon setup is a GitHub App, Radar track needs GitHub, and the starter repo is on GitHub). Add the README early.
 - [ ] Gitar: sign up, install the GitHub App on the repo, start the free Pro trial (https://docs.gitar.ai/quickstart)
 - [ ] Dash0: sign up (https://www.dash0.com/sign-up), create an auth token/endpoint for OTLP, connect the MCP server
 - [ ] Radar Cloud: https://app.radarhq.io ; get the team join code at the Radar table and use https://join.cnh.radarhq.io
-- [ ] Elasticsearch: Docker running, run start-local (or cloud trial link above)
+- [ ] Elasticsearch: Elastic Cloud trial (link above), Elasticsearch project type
 - [ ] OpenAI credits: $50 per participant; redemption instructions were NOT on the site - ask an organizer
 - [ ] Never commit API keys, tokens or the .env files; add them to .gitignore
 
-## 7. Roadmap (Mountain Time)
-
-- Now - 11:30: repo + Gitar review instructions + starter deploy through Radar + Elasticsearch running + data loaded.
-- 11:30 - 2:00: hybrid search + core UI, OTel instrumentation into Dash0, deploy flow working, every feature as a PR. Make the UI look polished NOW.
-- 2:00 - 4:00: galaxy map, Build-my-day, accessibility filters, chaos button, Dash0 dashboard + SLO, capture evidence screenshots (Gitar auto-fix, Radar investigation, Dash0 trace/Agent0).
-- 4:00 - 4:15: FEATURE FREEZE.
-- 4:15 - 5:00: README (what it is, setup steps, architecture, which sponsor does what, AI-use disclosure), rehearse the demo twice, record a backup demo video in case of Wi-Fi/live failure.
-- 5:00 - 5:30: submit EARLY, verify repo is public and README renders.
-
-## 8. Demo script (3-5 min; presentation time limit unknown)
-
-1. One-sentence problem + the working app.
-2. Elasticsearch: a vague natural-language query finds the right talk; show the galaxy lighting up.
-3. Gitar: show PR history and a failing CI run fixed by auto-apply.
-4. Radar: break the app live, run an AI investigation, show root cause and the fix shipping.
-5. Dash0: trace of the slowdown, Agent0/MCP findings, then the SLO/dashboard.
-6. Close: how it makes conferences easier, including accessibility.
-
-## 9. Open questions (ask an organizer / Discord ASAP)
+## 6. Open questions (ask an organizer / Discord ASAP)
 
 - WHERE and HOW do we submit (form? repo link? Devpost-style)? Not documented on the site.
 - Demo/presentation time limit and format.
 - How to redeem the $50 OpenAI credits.
-- Radar join code and how the team namespace is assigned.
 - Wi-Fi details; how to find teammates.
 - How best-overall and Merge Forward are judged.
 
-## 10. Working agreements for the Claude CLI session
+## 7. Working agreements for the Claude CLI session
 
 - Work in small feature branches; open a PR for each feature; let Gitar review; merge only after review. Many small PRs spread across the day, never one big PR at the end.
 - Commit incrementally: commit after each small working step (a file, a fix, a config change), with a clear message, and push the feature branch often. Never batch a lot of work into one commit. Gitar and the judges look at commit and PR history.
@@ -152,4 +111,4 @@ How each sponsor is used (this is what the judges check):
 - Time-box: if something is stuck for 20 minutes, cut scope or use the fallback. Protect the working demo over adding features.
 - Never put secrets in the repo. Read credentials from environment variables; commit a `.env.example` only.
 - Do not create accounts or enter credentials for the user; ask them to do it.
-- Read the cnh-starter README before designing the deployment, and the Dash0 Integrations Hub guide for the chosen language before instrumenting.
+- Read the Dash0 Integrations Hub guide for the chosen language before instrumenting.
