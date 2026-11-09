@@ -87,12 +87,17 @@ export function summarize(values: number[], thresholdMs: number, target: number 
 
 // ---- Process-wide windows (one set per server process) ----
 
-const windows = {
+// Next.js can bundle each route separately, which would give every route its own
+// copy of this module and its own empty windows: /api/talks/.../ask would record
+// into one set while /status reads another. Keeping the windows on globalThis
+// means every copy in the process shares the same one.
+const g = globalThis as unknown as { __sidecarHealth?: Record<"captionLag" | "answerLatency" | "llmTokens" | "aiFallbacks", RollingWindow> };
+const windows = (g.__sidecarHealth ??= {
   captionLag: new RollingWindow(),
   answerLatency: new RollingWindow(),
   llmTokens: new RollingWindow(),
   aiFallbacks: new RollingWindow(),
-};
+});
 
 export type HealthMetric = keyof typeof windows;
 
