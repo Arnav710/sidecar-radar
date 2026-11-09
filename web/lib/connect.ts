@@ -63,6 +63,16 @@ export async function myCards(me: PersonDoc): Promise<BlindCard[]> {
     query: { bool: { filter: [{ bool: { should: [{ term: { uid_a: me.uid } }, { term: { uid_b: me.uid } }] } }] } },
   });
   const docs = new Map(incoming.hits.hits.map((h) => [h._id!, h._source!]));
+  // Build cards for stored matches whose person is not in my candidate list, so I can still answer them.
+  const seen = new Set(candidates.map((c) => c.person.uid));
+  for (const d of docs.values()) {
+    const other = d.uid_a === me.uid ? d.uid_b : d.uid_a;
+    if (seen.has(other)) continue;
+    const p = await getPerson(other);
+    if (!p) continue;
+    seen.add(other);
+    candidates.push({ person: p, score: d.score, sameProblem: d.kind === "same_problem", sharedTalks: d.shared_talks, sharedProblem: d.shared_problem });
+  }
   const titles = await talkTitles(candidates.flatMap((c) => c.sharedTalks));
   const cards = candidates.map((c) => toCard(me, c, docs.get(pairId(me.uid, c.person.uid)), titles));
   // Mutual first, then "they want to meet you", then by score.
@@ -111,7 +121,7 @@ export async function wantToMeet(me: PersonDoc, matchId: string): Promise<BlindC
       uid_a: a, uid_b: b,
       kind: cand?.sameProblem ? "same_problem" : "same_interests",
       score: cand?.score ?? 0,
-      shared_problem: cand?.sharedProblem || other.problem_list[0] || "",
+      shared_problem: cand?.sharedProblem ?? "", // only a problem both people really share
       shared_talks: sharedTalks,
       wants: [], state: "open", updated_at: "",
     };
