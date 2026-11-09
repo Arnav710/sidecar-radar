@@ -1,13 +1,16 @@
 import { queueJob } from "@/lib/worker";
 import { NextResponse } from "next/server";
+import { DEFAULT_CONFERENCE_ID } from "@/lib/conferences";
 import { currentUid } from "@/lib/identity";
 import { getSchedule, parseBlocks, saveSchedule } from "@/lib/schedule";
 
 export const dynamic = "force-dynamic";
 
-/** The schedule this browser saved (404 if none yet). */
-export async function GET() {
-  const saved = await getSchedule(await currentUid());
+const confOf = (req: Request) => new URL(req.url).searchParams.get("conf") || DEFAULT_CONFERENCE_ID;
+
+/** The schedule this browser saved for a conference (?conf=<id>); 404 if none yet. */
+export async function GET(req: Request) {
+  const saved = await getSchedule(await currentUid(), confOf(req));
   if (!saved) return NextResponse.json({ error: "No saved schedule yet." }, { status: 404 });
   return NextResponse.json(saved);
 }
@@ -21,7 +24,7 @@ export async function PUT(req: Request) {
 
   try {
     const uid = await currentUid();
-    const saved = await saveSchedule(uid, parsed.blocks);
+    const saved = await saveSchedule(uid, confOf(req), parsed.blocks);
     queueJob("rebuild-person", { uid }); // refresh this person's matching doc
     return NextResponse.json(saved);
   } catch {

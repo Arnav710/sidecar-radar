@@ -1,4 +1,4 @@
-import { planDay, type Plan, type PlanBlock, type Profile, type SavedSchedule } from "@sidecar/shared";
+import { planDay, type Plan, type PlanBlock, type Profile, type SavedSchedule, type Talk } from "@sidecar/shared";
 import { log } from "@sidecar/shared/otel";
 import { listEvents } from "./events";
 import { es, hybridRetriever, INDEX } from "./es";
@@ -31,8 +31,8 @@ async function rankedIds(index: string, field: string, query: string): Promise<s
   }
 }
 
-/** A recommended schedule for this profile, built from the talks and side events in Elasticsearch. */
-export async function buildPlan(profile: Profile): Promise<Plan> {
+/** A recommended schedule for this profile, built from one conference's talks and the side events in Elasticsearch. */
+export async function buildPlan(profile: Profile, conference: string): Promise<Plan> {
   const query = profileQueryText(profile);
   const [{ talks }, events, talkIds, eventIds] = await Promise.all([
     listTalks(),
@@ -41,23 +41,51 @@ export async function buildPlan(profile: Profile): Promise<Plan> {
     rankedIds(INDEX.events, "description", query),
   ]);
   const relevance = { ...rankToScores(talkIds, "talk"), ...rankToScores(eventIds, "event") };
-  return planDay({ profile, talks, events, relevance });
+  return planDay({ profile, talks: talks.filter((t) => t.conference_id === conference), events, relevance });
 }
 
-export async function getSchedule(uid: string): Promise<SavedSchedule | null> {
+/** Each attendee has one saved schedule per conference. */
+const scheduleId = (uid: string, conference: string) => `${uid}:${conference}`;
+
+export async function getSchedule(uid: string, conference: string): Promise<SavedSchedule | null> {
   if (!process.env.ES_URL) return null;
   try {
-    const res = await es().get<SavedSchedule>({ index: INDEX.schedules, id: uid });
+    const res = await es().get<SavedSchedule>({ index: INDEX.schedules, id: scheduleId(uid, conference) });
     return res._source ?? null;
   } catch {
     return null;
   }
 }
 
-export async function saveSchedule(uid: string, blocks: PlanBlock[]): Promise<SavedSchedule> {
+export async function saveSchedule(uid: string, conference: string, blocks: PlanBlock[]): Promise<SavedSchedule> {
   const doc: SavedSchedule = { uid, blocks, updated_at: new Date().toISOString() };
-  await es().index({ index: INDEX.schedules, id: uid, document: doc, refresh: "wait_for" });
+  await es().index({ index: INDEX.schedules, id: scheduleId(uid, conference), document: doc, refresh: "wait_for" });
   return doc;
+}
+
+/**
+ * Scanning a talk's QR code chooses that talk: it goes into the schedule, and
+ * anything it overlaps (other than a reserved handoff) becomes an alternative
+ * to swap back to.
+ */
+export async function chooseTalk(uid: string, conference: string, talk: Talk): Promise<void> {
+  const blocks = (await getSchedule(uid, conference))?.blocks ?? [];
+  if (blocks.some((b) => b.kind === "talk" && b.ref === talk.id)) return;
+
+  const overlaps = (b: PlanBlock) => Date.parse(b.start) < Date.parse(talk.end) && Date.parse(talk.start) < Date.parse(b.end);
+  const displaced = blocks.filter((b) => b.kind !== "handoff" && overlaps(b));
+  const kept = blocks.filter((b) => !(overlaps(b) && (b.kind !== "handoff" || b.handoff !== "held")));
+
+  const alternatives = displaced.slice(0, 2).map((b) => ({
+    kind: b.kind === "event" ? ("event" as const) : ("talk" as const), ref: b.ref ?? "", title: b.title, start: b.start, end: b.end,
+    room_id: b.room_id, location: b.location, url: b.url, why: b.why ?? "",
+  }));
+  kept.push({
+    id: `talk:${talk.id}`, kind: "talk", start: talk.start, end: talk.end, title: talk.title, ref: talk.id, room_id: talk.room_id,
+    why: "You scanned this talk's code", ...(alternatives.length ? { alternatives } : {}),
+  });
+  kept.sort((a, b) => a.start.localeCompare(b.start));
+  await saveSchedule(uid, conference, kept);
 }
 
 const KINDS = ["talk", "event", "handoff"] as const;

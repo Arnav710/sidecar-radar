@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { BlindCard, ConnectResponse } from "@sidecar/shared";
-import { Logo } from "./Logo";
+import { AppShell } from "./AppShell";
 
 const POLL_MS = 3000;
 
@@ -64,14 +64,8 @@ export function ConnectBoard() {
   };
 
   return (
-    <main className="mx-auto max-w-4xl px-4 pb-24 pt-6 sm:px-6">
-      <header className="flex items-center justify-between">
-        <Logo />
-        <nav className="flex gap-2 text-sm">
-          <Link href="/plan" className="chip bg-white">Plan</Link>
-          <span className="chip bg-lime">Connect</span>
-        </nav>
-      </header>
+    <AppShell active="connect">
+    <main className="mx-auto max-w-4xl px-4 pb-24 pt-2 sm:px-6">
 
       {toast && (
         <div role="status" className="sticker fixed left-1/2 top-4 z-50 -translate-x-1/2 animate-pop bg-sun px-5 py-3 font-display text-lg font-bold">
@@ -79,7 +73,7 @@ export function ConnectBoard() {
         </div>
       )}
 
-      <section className="mt-10">
+      <section className="mt-6">
         <p className="chip bg-lilac">your hallway track</p>
         <h1 className="mt-3 text-4xl font-extrabold leading-tight sm:text-5xl">
           People stuck on <span className="marker">the same thing</span> as you
@@ -114,6 +108,7 @@ export function ConnectBoard() {
         ))}
       </div>
     </main>
+    </AppShell>
   );
 }
 

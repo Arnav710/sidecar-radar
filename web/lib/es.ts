@@ -13,6 +13,8 @@ export const INDEX = {
   schedules: "sidecar-schedules",
   people: "sidecar-people",
   matches: "sidecar-matches",
+  notes: "sidecar-notes",
+  folders: "sidecar-folders",
 } as const;
 
 /**

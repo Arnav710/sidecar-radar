@@ -56,7 +56,8 @@ export async function rebuildPerson(es: Client, uid: string, opts: { demo?: bool
   if (!uid || uid === "anonymous") return null;
   const [profileRes, scheduleRes, questionsRes] = await Promise.all([
     es.get<ProfileLike>({ index: "sidecar-profiles", id: uid }).catch(() => null),
-    es.get<ScheduleLike>({ index: "sidecar-schedules", id: uid }).catch(() => null),
+    // Schedules are saved per conference (id "<uid>:<conference>"), so read them all.
+    es.search<ScheduleLike>({ index: "sidecar-schedules", size: 20, query: { term: { uid } } }).catch(() => null),
     es.search<QuestionLike>({
       index: "sidecar-questions",
       size: 50,
@@ -73,7 +74,8 @@ export async function rebuildPerson(es: Client, uid: string, opts: { demo?: bool
   const problemList = [...new Set(matchable.map((q) => q.problem?.trim()).filter((p): p is string => Boolean(p)))];
   if (profile?.stuck_on) problemList.push(profile.stuck_on);
 
-  const scheduled = (scheduleRes?._source?.blocks ?? []).filter((b) => b.kind === "talk" && b.ref).map((b) => b.ref!);
+  const blocks = (scheduleRes?.hits.hits ?? []).flatMap((h) => h._source?.blocks ?? []);
+  const scheduled = blocks.filter((b) => b.kind === "talk" && b.ref).map((b) => b.ref!);
   const asked = [...new Set(questions.map((q) => q.talk_id))];
   const talkIds = [...new Set([...scheduled, ...asked])];
 

@@ -71,6 +71,12 @@ const indices: Record<string, Record<string, unknown>> = {
     uid_a: kw, uid_b: kw, kind: kw, score: { type: "float" }, shared_problem: { type: "text", index: false },
     shared_talks: kw, wants: kw, state: kw, kit: { type: "object", enabled: false }, updated_at: date,
   },
+  // The attendee's own notebook: notes, highlighted transcript lines and saved talks, plus folders.
+  "sidecar-notes": {
+    id: kw, uid: kw, talk_id: kw, conference_id: kw, folder_id: kw, kind: kw,
+    text: { type: "text" }, quote: { type: "text" }, offset_s: int, created_at: date,
+  },
+  "sidecar-folders": { id: kw, uid: kw, name: kw, created_at: date },
   // Side events from Luma, Slack and X (not part of the main talk schedule).
   "sidecar-events": {
     id: kw, source: kw, title: { type: "text" }, ...searchable("description"),
