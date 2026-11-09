@@ -18,7 +18,8 @@
     "openai": "4.104.0",
     "qrcode": "^1.5.4",
     "react": "19.1.0",
-    "react-dom": "19.1.0"
+    "react-dom": "19.1.0",
+    "react-force-graph-2d": "1.29.2"
   },
   "devDependencies": {
     "@eslint/eslintrc": "3.3.1",
