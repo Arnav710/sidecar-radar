@@ -3,7 +3,10 @@
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { Note, Plan, PlanAlternative, PlanBlock, SavedSchedule } from "@sidecar/shared";
-import { durationLabel, roomLabel, timeLabel } from "./format";
+import { durationLabel, roomLabel, timeLabel, VENUE_TZ } from "./format";
+
+/** "Mon, Nov 9" in venue local time, for day headers. */
+const dayLabel = (iso: string) => new Date(iso).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", timeZone: VENUE_TZ });
 import { IconBookmark, IconClock, IconPlus, IconQr, IconRefresh, IconSparkle, IconSwap, IconX } from "./Icons";
 import { QrScanner } from "./QrScanner";
 
@@ -199,9 +202,18 @@ export function ScheduleView({ conference }: { conference: string }) {
       <ol className="mt-6">
         {blocks.map((b, i) => {
           const next = blocks[i + 1];
-          const gapMin = next ? (ms(next.start) - ms(b.end)) / MINUTE : 0;
+          // No "free time" bar across midnight: the next block is another day.
+          const sameDay = next && dayLabel(next.start) === dayLabel(b.start);
+          const gapMin = next && sameDay ? (ms(next.start) - ms(b.end)) / MINUTE : 0;
+          const newDay = i === 0 || dayLabel(blocks[i - 1].start) !== dayLabel(b.start);
           return (
             <li key={b.id}>
+              {newDay && (
+                <h2 className={`mb-3 flex items-baseline gap-2 text-lg font-semibold ${i === 0 ? "" : "mt-8"}`}>
+                  {dayLabel(b.start)}
+                  {dayLabel(b.start) === dayLabel(new Date(now).toISOString()) && <span className="pill">Today</span>}
+                </h2>
+              )}
               <Row block={b} now={now} isNext={b.id === nextId} editing={editing} swapOpen={swapping === b.id}
                 saved={b.ref ? saved.has(b.ref) : false}
                 onToggleSwap={() => setSwapping(swapping === b.id ? null : b.id)} onSwap={(alt) => swap(b, alt)}

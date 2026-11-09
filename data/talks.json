@@ -171,5 +171,174 @@
       "step_free": true,
       "quiet_room_nearby": false
     }
+  },
+  {
+    "id": "collector-at-1m-spans",
+    "title": "Running the OpenTelemetry Collector at a Million Spans per Second",
+    "abstract": "Scaling collectors horizontally, trace-ID aware load balancing, memory limiter tuning and what our dashboards look like when it all works.",
+    "speaker": "Ana Costa",
+    "room_id": "main",
+    "start_in_min": 1050,
+    "duration_min": 40,
+    "level": "advanced",
+    "topics": [
+      "opentelemetry",
+      "collector",
+      "scaling"
+    ],
+    "is_recorded": true,
+    "accessibility": {
+      "captions": true,
+      "step_free": true,
+      "quiet_room_nearby": false
+    }
+  },
+  {
+    "id": "slo-from-traces",
+    "title": "SLOs From Traces: Turning Spans Into Error Budgets",
+    "abstract": "How we generate RED metrics from spans before sampling and build SLOs that product teams actually read.",
+    "speaker": "Ines Duarte",
+    "room_id": "room-b",
+    "start_in_min": 1110,
+    "duration_min": 35,
+    "level": "intermediate",
+    "topics": [
+      "slo",
+      "opentelemetry",
+      "sre"
+    ],
+    "is_recorded": true,
+    "accessibility": {
+      "captions": true,
+      "step_free": true,
+      "quiet_room_nearby": false
+    }
+  },
+  {
+    "id": "gpu-autoscaling",
+    "title": "Autoscaling GPU Inference Without Cold Starts",
+    "abstract": "Warm pools, predictive scaling and KEDA triggers for LLM serving on Kubernetes, with the latency numbers.",
+    "speaker": "Mei Tanaka",
+    "room_id": "room-d",
+    "start_in_min": 1170,
+    "duration_min": 35,
+    "level": "advanced",
+    "topics": [
+      "llm",
+      "gpu",
+      "autoscaling",
+      "kubernetes"
+    ],
+    "is_recorded": true,
+    "accessibility": {
+      "captions": false,
+      "step_free": false,
+      "quiet_room_nearby": false
+    }
+  },
+  {
+    "id": "platform-metrics",
+    "title": "Measuring Your Internal Developer Platform",
+    "abstract": "DORA, adoption funnels and developer surveys: the five platform metrics our leadership actually asked for.",
+    "speaker": "Omar Haddad",
+    "room_id": "room-c",
+    "start_in_min": 1230,
+    "duration_min": 30,
+    "level": "intermediate",
+    "topics": [
+      "platform engineering",
+      "developer experience",
+      "metrics"
+    ],
+    "is_recorded": true,
+    "accessibility": {
+      "captions": true,
+      "step_free": true,
+      "quiet_room_nearby": true
+    }
+  },
+  {
+    "id": "ebpf-observability",
+    "title": "eBPF for Observability: Traces Without Code Changes",
+    "abstract": "Using eBPF to capture HTTP and gRPC spans from any service, and where it beats SDK instrumentation.",
+    "speaker": "Kim Park",
+    "room_id": "room-a",
+    "start_in_min": 2490,
+    "duration_min": 35,
+    "level": "intermediate",
+    "topics": [
+      "ebpf",
+      "observability",
+      "tracing"
+    ],
+    "is_recorded": true,
+    "accessibility": {
+      "captions": true,
+      "step_free": true,
+      "quiet_room_nearby": false
+    }
+  },
+  {
+    "id": "llm-observability",
+    "title": "Tracing LLM Apps: Tokens, Costs and Prompts You Can't Store",
+    "abstract": "OpenTelemetry GenAI conventions, sampling prompts safely, and catching runaway token bills.",
+    "speaker": "Sam Lee",
+    "room_id": "room-b",
+    "start_in_min": 2550,
+    "duration_min": 35,
+    "level": "intermediate",
+    "topics": [
+      "llm",
+      "observability",
+      "cost"
+    ],
+    "is_recorded": true,
+    "accessibility": {
+      "captions": true,
+      "step_free": true,
+      "quiet_room_nearby": false
+    }
+  },
+  {
+    "id": "gitops-at-scale",
+    "title": "GitOps for 300 Clusters",
+    "abstract": "Argo CD app-of-apps, progressive delivery with Argo Rollouts, and how we stopped config drift.",
+    "speaker": "Dev Rao",
+    "room_id": "main",
+    "start_in_min": 2610,
+    "duration_min": 40,
+    "level": "advanced",
+    "topics": [
+      "gitops",
+      "argo cd",
+      "multi-cluster"
+    ],
+    "is_recorded": true,
+    "accessibility": {
+      "captions": true,
+      "step_free": true,
+      "quiet_room_nearby": false
+    }
+  },
+  {
+    "id": "newcomer-contrib",
+    "title": "Your First Open Source Contribution in Cloud Native",
+    "abstract": "Good first issues, how maintainers review, and the community meetings where newcomers are welcome.",
+    "speaker": "Leo Martins",
+    "room_id": "room-c",
+    "start_in_min": 2670,
+    "duration_min": 30,
+    "level": "beginner",
+    "topics": [
+      "community",
+      "open source",
+      "getting started"
+    ],
+    "is_recorded": true,
+    "accessibility": {
+      "captions": true,
+      "step_free": true,
+      "quiet_room_nearby": true
+    }
   }
 ]
