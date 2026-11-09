@@ -56,7 +56,11 @@ function toCard(me: PersonDoc, c: Candidate, doc: MatchDoc | undefined, titles: 
 
 /** My blind cards, best first, with each pair's current state. */
 export async function myCards(me: PersonDoc): Promise<BlindCard[]> {
-  const candidates = await candidatesFor(me);
+  // Demo attendees can fill the top list, so also ask for real people only and
+  // always include them (real matches drive the live pop-ups during a talk).
+  const [ranked, realOnly] = await Promise.all([candidatesFor(me), candidatesFor(me, [{ term: { demo: false } }], 5)]);
+  const candidates = [...ranked];
+  for (const c of realOnly) if (!candidates.some((x) => x.person.uid === c.person.uid)) candidates.push(c);
   // Someone who already wants to meet me should show up even if they fell out of my top list.
   const incoming = await es().search<MatchDoc>({
     index: INDEX.matches, size: 10,
