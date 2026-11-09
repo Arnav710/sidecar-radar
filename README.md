@@ -45,7 +45,7 @@ Plus: a profile and a day planner that ranks talks and side events (Luma, Slack,
 - **Elasticsearch is the only data store**: talks, live transcripts, questions, signals, profiles, schedules, people, matches, venue, meetups, notes.
 - **No accounts.** An anonymous id cookie; matching is opt-in and blind until both say yes.
 
-Deeper docs: [docs/ELASTICSEARCH.md](docs/ELASTICSEARCH.md) (every query), [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [docs/PLAN.md](docs/PLAN.md).
+Deeper docs: [docs/DEMO.md](docs/DEMO.md) (the 3-minute demo), [docs/ELASTICSEARCH.md](docs/ELASTICSEARCH.md) (every query), [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [docs/PLAN.md](docs/PLAN.md).
 
 ---
 
