@@ -1,0 +1,99 @@
+@import "tailwindcss";
+
+/* Sidecar visual system: "conference stickers".
+   Cream paper, chunky ink outlines, hard offset shadows, bright sticker colors.
+   Stage mode (live talk) flips to ink with neon captions. */
+
+@theme {
+  --color-paper: #fff6e6;
+  --color-paper-2: #fdecd0;
+  --color-ink: #17131f;
+  --color-ink-2: #2a2433;
+  --color-ink-soft: #5b5366;
+  --color-tangerine: #ff6b35;
+  --color-lime: #c6f432;
+  --color-lilac: #b9a6ff;
+  --color-sky: #7cd4ff;
+  --color-bubble: #ff8fc7;
+  --color-sun: #ffd23f;
+
+  --font-display: var(--font-bricolage), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-dm), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-space-mono), ui-monospace, monospace;
+
+  --radius-sticker: 18px;
+  --shadow-hard: 4px 4px 0 0 var(--color-ink);
+  --shadow-hard-lg: 7px 7px 0 0 var(--color-ink);
+  --shadow-hard-lime: 4px 4px 0 0 var(--color-lime);
+
+  --animate-pop: pop 380ms cubic-bezier(0.2, 1.4, 0.4, 1) both;
+  --animate-rise: rise 420ms cubic-bezier(0.2, 0.9, 0.3, 1) both;
+  --animate-wiggle: wiggle 900ms ease-in-out infinite;
+  --animate-pulse-dot: pulse-dot 1.4s ease-in-out infinite;
+}
+
+@keyframes pop {
+  0% { transform: scale(0.6) rotate(-6deg); opacity: 0; }
+  100% { transform: scale(1) rotate(var(--tilt, 0deg)); opacity: 1; }
+}
+@keyframes rise {
+  0% { transform: translateY(14px); opacity: 0; }
+  100% { transform: translateY(0); opacity: 1; }
+}
+@keyframes wiggle {
+  0%, 100% { transform: rotate(-3deg); }
+  50% { transform: rotate(3deg); }
+}
+@keyframes pulse-dot {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.6); opacity: 0.4; }
+}
+
+@layer base {
+  html { background: var(--color-paper); color: var(--color-ink); }
+  body {
+    font-family: var(--font-sans);
+    /* faint dot grid, like a notebook page */
+    background-image: radial-gradient(color-mix(in srgb, var(--color-ink) 9%, transparent) 1px, transparent 1px);
+    background-size: 22px 22px;
+    -webkit-font-smoothing: antialiased;
+  }
+  h1, h2, h3 { font-family: var(--font-display); letter-spacing: -0.02em; }
+  :focus-visible { outline: 3px solid var(--color-tangerine); outline-offset: 3px; border-radius: 6px; }
+}
+
+@layer components {
+  /* A sticker card: thick outline + hard shadow. */
+  .sticker {
+    background: white;
+    border: 2.5px solid var(--color-ink);
+    border-radius: var(--radius-sticker);
+    box-shadow: var(--shadow-hard);
+  }
+  /* Chunky pressable button. */
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
+    font-family: var(--font-display); font-weight: 700;
+    border: 2.5px solid var(--color-ink); border-radius: 999px;
+    padding: 0.6rem 1.15rem; box-shadow: var(--shadow-hard);
+    transition: transform 90ms ease, box-shadow 90ms ease;
+    cursor: pointer; user-select: none;
+  }
+  .btn:hover { transform: translate(-1px, -1px); box-shadow: 5px 5px 0 0 var(--color-ink); }
+  .btn:active { transform: translate(3px, 3px); box-shadow: 1px 1px 0 0 var(--color-ink); }
+  .btn:disabled { opacity: 0.55; cursor: not-allowed; transform: none; }
+  .chip {
+    display: inline-flex; align-items: center; gap: 0.35rem;
+    font-family: var(--font-mono); font-size: 0.75rem; font-weight: 700;
+    border: 2px solid var(--color-ink); border-radius: 999px; padding: 0.1rem 0.55rem;
+  }
+  /* Highlighter-pen underline for headline words. */
+  .marker {
+    background: linear-gradient(transparent 58%, var(--color-lime) 58%, var(--color-lime) 92%, transparent 92%);
+    padding: 0 0.1em;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 1ms !important; animation-iteration-count: 1 !important; transition-duration: 1ms !important; }
+}
