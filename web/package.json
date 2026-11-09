@@ -10,6 +10,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@dash0/sdk-web": "0.30.0",
     "@elastic/elasticsearch": "8.18.2",
     "@sidecar/shared": "*",
     "@types/qrcode": "^1.5.5",
