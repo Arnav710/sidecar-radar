@@ -49,6 +49,28 @@ async function main() {
       });
     });
   }
+  // A labelled demo crowd for the live pitch, so the speaker report and the
+  // graph aren't empty: a few questions per theme (3+ people, the report's
+  // privacy floor) and an "I'm lost" spike around minute 2. The presenter's
+  // own live question is the real one.
+  const pitchQuestions: [string, string, string, string][] = [
+    ["demo-maya", "How do we keep error traces if we sample most traces away?", "tracing cost", "keeping error traces while sampling"],
+    ["demo-jonas", "How do you sample in the collector instead of the SDK?", "tracing cost", "moving sampling decisions to the collector"],
+    ["demo-ravi", "How do I cut our tracing bill without losing failed requests?", "tracing cost", "reducing tracing costs without losing failed requests"],
+    ["demo-ines", "How do I keep slow requests when we drop most traces?", "tracing cost", "keeping slow requests while sampling"],
+    ["demo-lena", "How do I stop collectors running out of memory?", "collector memory", "collector running out of memory"],
+    ["demo-ana", "How do I size collector memory for tail sampling?", "collector memory", "sizing collector memory for tail sampling"],
+    ["demo-tom", "How do I limit collector memory at peak traffic?", "collector memory", "limiting collector memory at peak"],
+  ];
+  pitchQuestions.forEach(([uid, text, topic, problem], i) => {
+    const id = `${uid}-pitch-q`;
+    ops.push({ index: { _index: "sidecar-questions", _id: id } }, { id, uid, talk_id: "sidecar-live-pitch", offset_s: 40 + i * 15, ts: now, text, type: "applied", topic, problem });
+  });
+  ["demo-maya", "demo-jonas", "demo-ravi", "demo-leo", "demo-kim", "demo-ines"].forEach((uid, i) => {
+    ops.push({ index: { _index: "sidecar-signals", _id: `${uid}-pitch-lost` } }, { uid_hash: `demo-${i}`, talk_id: "sidecar-live-pitch", offset_s: 120 + i * 4, ts: now, type: "lost" });
+    ops.push({ index: { _index: "sidecar-signals", _id: `${uid}-pitch-got` } }, { uid_hash: `demo-${i}`, talk_id: "sidecar-live-pitch", offset_s: 60 + i * 3, ts: now, type: "got_it" });
+  });
+
   const res = await es.bulk({ operations: ops, refresh: true });
   if (res.errors) throw new Error(JSON.stringify(res.items.find((i) => i.index?.error)?.index?.error));
 
