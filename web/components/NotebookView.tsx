@@ -8,7 +8,7 @@ import { IconBookmark, IconDownload, IconFolder, IconPlus, IconStar, IconTrash }
 
 type Filter = { kind: "all" } | { kind: "highlights" } | { kind: "saved" } | { kind: "unfiled" } | { kind: "folder"; id: string };
 
-export function NotebookView({ talkTitles }: { talkTitles: Record<string, string> }) {
+export function NotebookView({ talkTitles, conference }: { talkTitles: Record<string, string>; conference: string }) {
   const [notes, setNotes] = useState<Note[]>([]);
   const [folders, setFolders] = useState<Folder[]>([]);
   const [filter, setFilter] = useState<Filter>({ kind: "all" });
@@ -19,13 +19,13 @@ export function NotebookView({ talkTitles }: { talkTitles: Record<string, string
 
   const load = useCallback(async () => {
     const [n, f] = await Promise.all([
-      fetch("/api/notes").then((r) => r.json() as Promise<{ notes: Note[] }>),
+      fetch(`/api/notes?conf=${encodeURIComponent(conference)}`).then((r) => r.json() as Promise<{ notes: Note[] }>),
       fetch("/api/folders").then((r) => r.json() as Promise<{ folders: Folder[] }>),
     ]);
     setNotes(n.notes);
     setFolders(f.folders);
     setLoaded(true);
-  }, []);
+  }, [conference]);
   useEffect(() => { load().catch(() => setLoaded(true)); }, [load]);
 
   const visible = useMemo(() => {
@@ -131,7 +131,7 @@ export function NotebookView({ talkTitles }: { talkTitles: Record<string, string
       <section aria-label="Notes">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <p className="text-sm text-ink-soft">{visible.length} {filter.kind === "saved" ? "saved talk" : "note"}{visible.length === 1 ? "" : "s"}</p>
-          <a href="/api/notebook/export" className="btn btn-sm"><IconDownload size={15} /> Export as Markdown</a>
+          <a href={`/api/notebook/export?conf=${encodeURIComponent(conference)}`} className="btn btn-sm"><IconDownload size={15} /> Export as Markdown</a>
         </div>
 
         {groups.length === 0 && (

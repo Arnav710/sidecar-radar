@@ -99,8 +99,9 @@ export async function createNote(uid: string, input: NoteInput): Promise<Note> {
   return note;
 }
 
-export async function listNotes(uid: string, filter: { talk_id?: string; kind?: NoteKind } = {}): Promise<Note[]> {
+export async function listNotes(uid: string, filter: { talk_id?: string; kind?: NoteKind; conference_id?: string } = {}): Promise<Note[]> {
   const must: object[] = [{ term: { uid } }];
+  if (filter.conference_id) must.push({ term: { conference_id: filter.conference_id } });
   if (filter.talk_id) must.push({ term: { talk_id: filter.talk_id } });
   if (filter.kind) must.push({ term: { kind: filter.kind } });
   const res = await es().search<Note>({ index: INDEX.notes, size: 500, query: { bool: { filter: must } }, sort: [{ created_at: "desc" }] });
@@ -134,8 +135,8 @@ export async function updateNote(uid: string, id: string, patch: { text?: unknow
 // ---- Export ----
 
 /** The whole notebook as Markdown, so it can become a report later. */
-export async function exportMarkdown(uid: string): Promise<string> {
-  const [folders, notes, { talks }] = await Promise.all([listFolders(uid), listNotes(uid), listTalks()]);
+export async function exportMarkdown(uid: string, conference_id?: string): Promise<string> {
+  const [folders, notes, { talks }] = await Promise.all([listFolders(uid), listNotes(uid, { conference_id }), listTalks()]);
   const title = new Map(talks.map((t) => [t.id, t.title]));
   const talkName = (id: string) => title.get(id) ?? id;
 

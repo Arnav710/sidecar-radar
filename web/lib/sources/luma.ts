@@ -1,5 +1,5 @@
 import type { OutsideEvent } from "@sidecar/shared";
-import { guessKind, guessTopics } from "./classify";
+import { guessAccessibility, guessKind, guessTopics } from "./classify";
 import { parseIcs } from "./ics";
 
 // Luma has no MCP server, but every Luma calendar publishes a public iCalendar
@@ -30,6 +30,7 @@ export async function fetchLumaEvents(): Promise<OutsideEvent[]> {
         url: e.url,
         kind: guessKind(text),
         topics: guessTopics(text),
+        accessibility: guessAccessibility(`${text} ${e.location ?? ""}`),
         synced_at: now,
       });
     }

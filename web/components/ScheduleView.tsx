@@ -71,13 +71,15 @@ export function ScheduleView({ conference }: { conference: string }) {
         setStatus("ready");
         const plan = await fetch(`/api/schedule/plan?${q}`);
         if (plan.ok) setPool(((await plan.json()) as Plan).pool);
+      } else if (res.status === 404) {
+        await loadPlan(); // no schedule yet: make one
       } else {
-        await loadPlan();
+        setStatus("error"); // a failure is not "no schedule": never plan over the saved one
       }
     })().catch(() => setStatus("error"));
 
     fetch("/api/sources").then((r) => r.json()).then((d: { sources: SourceInfo[] }) => setSources(d.sources)).catch(() => {});
-    fetch("/api/notes?kind=favorite").then((r) => r.json()).then((d: { notes: Note[] }) => setSaved(new Set(d.notes.map((n) => n.talk_id)))).catch(() => {});
+    fetch(`/api/notes?kind=favorite&${q}`).then((r) => r.json()).then((d: { notes: Note[] }) => setSaved(new Set(d.notes.map((n) => n.talk_id)))).catch(() => {});
   }, [q, loadPlan]);
 
   // Save after every change.
@@ -297,6 +299,7 @@ function SessionCard({ block: b, now, isNext, editing, swapOpen, saved, onToggle
       </div>
       <h3 className="mt-2 text-base leading-snug sm:text-lg">{title}</h3>
       {b.why && <p className="mt-1.5 flex gap-1.5 text-sm text-ink-soft"><IconSparkle size={14} className="mt-0.5 shrink-0 text-accent" />{b.why}</p>}
+      <AccessibilityChips a={b.accessibility} />
 
       <div className="relative z-10 mt-3 flex flex-wrap items-center gap-1.5">
         {isTalk && (
@@ -351,5 +354,17 @@ function HandoffCard({ block: b, editing, onHandoff, onRemove }: Parameters<type
         </div>
       </div>
     </div>
+  );
+}
+
+/** Accessibility facts known to be true (repo rule 3). Unknown ones are left out rather than shown as "no". */
+function AccessibilityChips({ a }: { a?: PlanBlock["accessibility"] }) {
+  if (!a) return null;
+  const items = [a.captions && "Live captions", a.step_free && "Step-free", a.quiet_room_nearby && "Quiet room nearby"].filter(Boolean) as string[];
+  if (items.length === 0) return null;
+  return (
+    <ul className="mt-2 flex flex-wrap gap-1.5" aria-label="Accessibility">
+      {items.map((t) => <li key={t} className="pill">{t}</li>)}
+    </ul>
   );
 }

@@ -1,4 +1,4 @@
-import type { OutsideKind } from "@sidecar/shared";
+import type { EventAccessibility, OutsideKind } from "@sidecar/shared";
 
 // Simple word lists to label events. Plain keyword matching on purpose: easy to
 // read, easy to extend, and good enough to rank side events against a profile.
@@ -24,6 +24,20 @@ export const TOPIC_WORDS = [
 export function guessTopics(text: string): string[] {
   const lower = text.toLowerCase();
   return TOPIC_WORDS.filter((t) => new RegExp(`\\b${t.replace(/ /g, "\\s+")}\\b`).test(lower));
+}
+
+/**
+ * Accessibility facts stated in the event text. We only ever answer "yes" (true)
+ * or "not stated" (null): a missing mention is not proof of "no".
+ */
+export function guessAccessibility(text: string): EventAccessibility {
+  const said = (re: RegExp) => (re.test(text) ? true : null);
+  return {
+    // Specific phrases only: words like "elevator" or "ramp" also mean "elevator pitch" or "ramp up".
+    captions: said(/\b(captions?|captioned|live captioning|asl|sign language interpret(er|ers|ation|ed))\b/i),
+    step_free: said(/\b(step[- ]free|wheelchair[- ]accessible|ada[- ]accessible|accessible entrance|elevator access)\b/i),
+    quiet_room_nearby: said(/\b(quiet (room|space|area)|sensory[- ]friendly|low[- ]sensory)\b/i),
+  };
 }
 
 export function isEventKeyword(text: string): boolean {

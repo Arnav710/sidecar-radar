@@ -58,6 +58,7 @@ test("leaves a handoff slot for gaps of 15 minutes or more, but not for back-to-
 test("people who want to meet others get networking events", () => {
   const event: OutsideEvent = {
     id: "luma:1", source: "luma", title: "Mixer", description: "", start: at("23:00"), kind: "networking", topics: [], synced_at: NOW.toISOString(),
+    accessibility: { captions: null, step_free: true, quiet_room_nearby: null },
   };
   const meet = planDay({ profile: { ...profile, goals: ["meet_peers"] }, talks: [], events: [event], relevance: { "event:luma:1": 0.1 }, now: NOW });
   assert.equal(meet.blocks[0].ref, "luma:1");
@@ -68,4 +69,11 @@ test("people who want to meet others get networking events", () => {
 test("things that already ended are not planned", () => {
   const plan = planDay({ profile, talks: [talk("old", "10:00", "11:00", ["observability"])], events: [], relevance: { "talk:old": 1 }, now: NOW });
   assert.equal(plan.blocks.length, 0);
+});
+
+test("accessibility facts travel with picks and alternatives", () => {
+  const talks = [talk("a", "17:00", "18:00", ["observability"]), talk("b", "17:30", "18:30", ["security"])];
+  const plan = planDay({ profile, talks, events: [], relevance: { "talk:a": 0.9, "talk:b": 0.5 }, now: NOW });
+  assert.deepEqual(plan.blocks[0].accessibility, { captions: true, step_free: true, quiet_room_nearby: false });
+  assert.equal(plan.blocks[0].alternatives?.[0].accessibility?.captions, true);
 });

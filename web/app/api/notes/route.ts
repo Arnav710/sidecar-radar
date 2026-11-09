@@ -5,12 +5,12 @@ import { createNote, deleteNote, listNotes, parseNoteInput } from "@/lib/noteboo
 
 export const dynamic = "force-dynamic";
 
-/** The current browser's notes. Filter with ?talk=<id> and/or ?kind=note|highlight|favorite. */
+/** The current browser's notes. Filter with ?conf=<conference>, ?talk=<id> and/or ?kind=note|highlight|favorite. */
 export async function GET(req: Request) {
   if (!process.env.ES_URL) return NextResponse.json({ notes: [] });
   const q = new URL(req.url).searchParams;
   const kind = q.get("kind") as NoteKind | null;
-  const notes = await listNotes(await currentUid(), { talk_id: q.get("talk") ?? undefined, kind: kind ?? undefined });
+  const notes = await listNotes(await currentUid(), { talk_id: q.get("talk") ?? undefined, kind: kind ?? undefined, conference_id: q.get("conf") ?? undefined });
   return NextResponse.json({ notes });
 }
 

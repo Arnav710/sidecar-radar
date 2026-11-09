@@ -162,23 +162,31 @@ export function TalkSession({ talk, conference, serverNow }: { talk: SessionTalk
   const addCard = (c: Omit<Card, "at">) => setCards((all) => [{ ...c, at: elapsed }, ...all]);
   const finish = (id: string, patch: Partial<Card>) => setCards((all) => all.map((c) => (c.id === id ? { ...c, pending: false, ...patch } : c)));
 
+  /** POST and read JSON, throwing the server's own error message on a non-OK answer. */
+  async function post<T>(url: string, init: RequestInit = { method: "POST" }): Promise<T> {
+    const res = await fetch(url, init);
+    const data = (await res.json().catch(() => ({}))) as T & { error?: string };
+    if (!res.ok) throw new Error(data.error ?? "Couldn't reach Sidecar. Try again.");
+    return data;
+  }
+
   async function run(kind: "catchup" | "apply" | "explain") {
     const id = crypto.randomUUID();
     const titles = { catchup: "Catching you up…", apply: "Connecting this to your work…", explain: "Explaining the last 30 seconds…" };
     addCard({ id, kind, title: titles[kind], pending: true });
     try {
       if (kind === "catchup") {
-        const d = (await (await fetch(`/api/talks/${talk.id}/catchup`, { method: "POST" })).json()) as CatchUpResponse;
+        const d = await post<CatchUpResponse>(`/api/talks/${talk.id}/catchup`);
         finish(id, { title: `So far, ${formatOffset(d.covered_s)} in`, body: d.summary });
       } else if (kind === "apply") {
-        const d = (await (await fetch(`/api/talks/${talk.id}/apply`, { method: "POST" })).json()) as ApplyResponse;
+        const d = await post<ApplyResponse>(`/api/talks/${talk.id}/apply`);
         finish(id, { title: "How this applies to you", body: d.text });
       } else {
-        const d = (await (await fetch(`/api/talks/${talk.id}/signal`, json({ type: "lost", level: "curious beginner" }))).json()) as ExplainResponse;
+        const d = await post<ExplainResponse>(`/api/talks/${talk.id}/signal`, json({ type: "lost", level: "curious beginner" }));
         finish(id, { title: "The last 30 seconds, again", body: d.explanation });
       }
-    } catch {
-      finish(id, { title: "Something went wrong", error: "Couldn't reach Sidecar. Try again." });
+    } catch (err) {
+      finish(id, { title: "Something went wrong", error: (err as Error).message || "Couldn't reach Sidecar. Try again." });
     }
   }
 
