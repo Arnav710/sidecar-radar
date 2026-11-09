@@ -1,6 +1,6 @@
 import { VENUE_TZ_NAME, zonedTimeToUtc, type OutsideEvent, type OutsideSource } from "@sidecar/shared";
 import { aiEnabled, extractEventAnnouncements, tryAi } from "../ai";
-import { guessKind, guessTopics, isEventKeyword } from "./classify";
+import { guessAccessibility, guessKind, guessTopics, isEventKeyword } from "./classify";
 
 // Slack messages and X posts are free text, not calendar entries. This file
 // turns the ones that announce an event ("drinks at 6pm at Whiskey Street")
@@ -43,6 +43,7 @@ function heuristicEvent(c: Chatter, now: string): OutsideEvent | null {
     url: c.url,
     kind: guessKind(c.text),
     topics: guessTopics(c.text),
+    accessibility: guessAccessibility(c.text),
     synced_at: now,
   };
 }
@@ -96,6 +97,7 @@ async function aiEvents(items: Chatter[], now: string): Promise<OutsideEvent[] |
       url: c.url,
       kind: kinds.find((k) => k === e.kind) ?? guessKind(c.text),
       topics: Array.isArray(e.topics) ? e.topics.map((t) => String(t).toLowerCase().slice(0, 40)).slice(0, 6) : guessTopics(c.text),
+      accessibility: guessAccessibility(`${c.text} ${e.location ?? ""}`),
       synced_at: now,
     });
   }
