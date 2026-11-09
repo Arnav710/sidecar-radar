@@ -26,7 +26,9 @@ export async function syncOutsideEvents(): Promise<SourceSyncResult[]> {
       }
       try {
         const events = await load();
-        await saveEvents(events);
+        // The first save after a cold start can time out while Elasticsearch loads its
+        // embedding model, so try once more before giving up.
+        await saveEvents(events).catch(() => saveEvents(events));
         results.push({ source, status: "ok", found: events.length });
       } catch (err) {
         log("warn", "sources.sync_failed", { "sidecar.source": source, "error.type": (err as Error).name });
