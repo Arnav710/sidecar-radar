@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { offsetSince } from "@sidecar/shared";
+import { offsetSince, recordHealth } from "@sidecar/shared";
 import { m } from "@sidecar/shared/otel";
 import { getTalk } from "@/lib/talks";
 import { addLine } from "@/lib/transcripts";
@@ -29,7 +29,11 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   // This is the caption-lag SLO.
   const attrs = { "sidecar.room.id": talk.room_id, "sidecar.caption.source": body.source === "replay" ? "replay" : "room_laptop" };
   m().captions.add(1, attrs);
-  if (typeof body.spoken_at === "number") m().captionLag.record(Math.max(0, Date.now() - body.spoken_at), attrs);
+  if (typeof body.spoken_at === "number") {
+    const lag = Math.max(0, Date.now() - body.spoken_at);
+    m().captionLag.record(lag, attrs);
+    recordHealth("captionLag", lag); // also shown live on /status
+  }
 
   return Response.json({ ok: true, offset_s });
 }
