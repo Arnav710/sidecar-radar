@@ -2,7 +2,7 @@
 
 ## Before you go on stage (5 minutes earlier)
 
-1. `npm run seed` (resets talk times to "now", keeps room keys, loads the 14 demo attendees and the venue).
+1. `npm run reset-live && npm run seed` (clears every test user, question, match and the pitch transcript; resets talk times to "now", keeps room keys, reloads the 14 demo attendees and the venue).
 2. **Laptop A, the room laptop (Chrome):** open the room link for `sidecar-live-pitch`:
    `python3 -c "import json;k=json.load(open('.room-keys.json'));print('https://sidecar.cnh.radarhq.io/talk/sidecar-live-pitch/room?key='+k['sidecar-live-pitch'])"`
    Click **Start captioning**, allow the mic. Its big QR code is on screen.
@@ -17,6 +17,7 @@
 | 0:00–0:20 | "The best part of a conference is the people. But 52% of attendees say the most valuable thing is meeting people facing *similar challenges*, and nobody shows you who they are. Job titles don't tell you who to meet. **The question you just asked does.**" | Title slide |
 | 0:20–0:40 | "Scan this. **This pitch is now a live talk.**" | Room laptop QR. Judges' phones show live captions of what you're saying. |
 | 0:40–1:10 | "Say I'm lost on sampling…" Ask on Phone 1: *"How do I keep error traces when we sample?"* | The answer quotes what was said seconds ago with a timestamp chip, plus **where to go next** (Tail Sampling Deep Dive). Tap **I'm lost**: the last 30 seconds re-explained. |
+| 1:05–1:10 | "And if someone else here is stuck on the same thing…" | Phone 2 asks a similar question in different words. Within seconds both phones pop up **"🔥 Someone here is stuck on the same thing"** → tap → the blind card. |
 | 1:10–1:40 | "Here's the hallway track for this room." | Projector: the **people graph**. Bold orange lines = same problem, dashed = same interests. Phone 2 asks a similar question in different words: a new bold edge appears live. |
 | 1:40–2:10 | "Names stay hidden until both say yes." | Phone 1 `/connect`: **Matched from what you asked**, your graph with you in orange, and a blind card: *"Also stuck on: keeping error traces while cutting tracing costs"*. Both phones tap **Want to meet** → 🎉 mutual, names + **conversation kit** (why you two, opener, follow-ups). |
 | 2:10–2:30 | "And it books the meeting." | Meetup card: **first free slot in both schedules + nearest uncrowded spot**, on the venue map. Both accept → on both schedules. |

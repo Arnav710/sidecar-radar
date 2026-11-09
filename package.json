@@ -17,7 +17,8 @@
     "es:setup": "tsx scripts/es-setup.ts",
     "seed": "tsx scripts/seed.ts && tsx scripts/seed-venue.ts && tsx scripts/seed-people.ts",
     "replay": "tsx scripts/replay-room.ts",
-    "sync:sources": "tsx scripts/sync-sources.ts"
+    "sync:sources": "tsx scripts/sync-sources.ts",
+    "reset-live": "tsx scripts/reset-live.ts"
   },
   "devDependencies": {
     "tsx": "4.19.4",
