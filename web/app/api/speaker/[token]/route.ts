@@ -1,7 +1,7 @@
 import type { SpeakerReport } from "@sidecar/shared";
 import { withSpan } from "@sidecar/shared/otel";
-import { speakerReport, tryAi } from "@/lib/ai";
 import { buildReport, talkByToken } from "@/lib/speaker";
+import { cachedSummary } from "@/lib/speaker-summary";
 
 export const dynamic = "force-dynamic";
 
@@ -16,9 +16,8 @@ export async function GET(_req: Request, { params }: { params: Promise<{ token: 
   return withSpan("sidecar.speaker_report", { "sidecar.talk.id": talk.id }, async (set) => {
     const report = await buildReport(talk);
 
-    // Only write the summary once there is something real to summarise.
-    const enough = report.people >= report.min_people && (report.clusters.length > 0 || report.spikes.length > 0);
-    const summary = enough ? await tryAi(() => speakerReport(talk.title, report.clusters, report.spikes)) : null;
+    // Cached per talk: refreshes and polls don't each call OpenAI.
+    const summary = await cachedSummary(talk, report);
 
     set({
       "sidecar.report.people": report.people,

@@ -3,8 +3,8 @@ import type { SpeakerReport } from "@sidecar/shared";
 import { AutoRefresh } from "@/components/AutoRefresh";
 import { Logo } from "@/components/Logo";
 import { SpeakerReportView } from "@/components/SpeakerReportView";
-import { speakerReport, tryAi } from "@/lib/ai";
 import { buildReport, talkByToken } from "@/lib/speaker";
+import { cachedSummary } from "@/lib/speaker-summary";
 
 export const dynamic = "force-dynamic";
 
@@ -17,8 +17,8 @@ export default async function SpeakerPage({ params }: { params: Promise<{ token:
   if (!talk) notFound();
 
   const report = await buildReport(talk);
-  const enough = report.people >= report.min_people && (report.clusters.length > 0 || report.spikes.length > 0);
-  const summary = enough ? await tryAi(() => speakerReport(talk.title, report.clusters, report.spikes)) : null;
+  // Cached per talk: the 20 s auto-refresh doesn't call OpenAI each time.
+  const summary = await cachedSummary(talk, report);
 
   const full: SpeakerReport = { ...report, summary: summary ?? undefined, summary_mode: summary ? "ai" : "none" };
 

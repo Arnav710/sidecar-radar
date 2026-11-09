@@ -1,5 +1,5 @@
 import type { ConfusionSpike, MinuteBucket, QuestionCluster, SpeakerReport, Talk } from "@sidecar/shared";
-import { MIN_PEOPLE } from "@sidecar/shared";
+import { MIN_PEOPLE, mergeTimeline } from "@sidecar/shared";
 import { es, INDEX } from "./es";
 import { transcriptWindow } from "./transcripts";
 
@@ -131,40 +131,6 @@ async function clusters(talkId: string): Promise<QuestionCluster[]> {
   }
 }
 
-/** Merge the two timelines into one row per minute, withholding thin minutes. */
-function mergeTimeline(signals: MinuteAgg, questions: MinuteAgg): MinuteBucket[] {
-  const rows = new Map<number, MinuteBucket & { people: number }>();
-
-  const row = (minute: number) => {
-    let r = rows.get(minute);
-    if (!r) {
-      r = { minute, lost: 0, got_it: 0, questions: 0, withheld: false, people: 0 };
-      rows.set(minute, r);
-    }
-    return r;
-  };
-
-  for (const b of signals.by_minute?.buckets ?? []) {
-    const r = row(Math.round(b.key / MINUTE));
-    for (const t of b.by_type?.buckets ?? []) {
-      if (t.key === "lost") r.lost += t.doc_count;
-      if (t.key === "got_it") r.got_it += t.doc_count;
-    }
-    r.people = Math.max(r.people, b.people?.value ?? 0);
-  }
-  for (const b of questions.by_minute?.buckets ?? []) {
-    const r = row(Math.round(b.key / MINUTE));
-    r.questions += b.doc_count;
-    r.people = Math.max(r.people, b.people?.value ?? 0);
-  }
-
-  return [...rows.values()]
-    .sort((a, b) => a.minute - b.minute)
-    .map(({ people, ...r }) =>
-      people >= MIN_PEOPLE ? r : { minute: r.minute, lost: 0, got_it: 0, questions: 0, withheld: true },
-    );
-}
-
 /** The minutes with the most "I'm lost" taps, with what was said then. */
 async function spikes(talkId: string, timeline: MinuteBucket[]): Promise<ConfusionSpike[]> {
   const top = timeline
@@ -189,14 +155,23 @@ export async function buildReport(talk: Talk): Promise<Omit<SpeakerReport, "summ
     clusters(talk.id),
   ]);
 
-  const timeline = mergeTimeline(signals, questions);
+  // Each source gets its own privacy floor (see shared/src/timeline.ts).
+  const timeline = mergeTimeline(signals.by_minute?.buckets ?? [], questions.by_minute?.buckets ?? []);
   const totals = timeline.reduce(
     (acc, b) => ({ lost: acc.lost + b.lost, got_it: acc.got_it + b.got_it, questions: acc.questions + b.questions }),
     { lost: 0, got_it: 0, questions: 0 },
   );
 
   return {
-    talk: { id: talk.id, title: talk.title, speaker: talk.speaker, room_id: talk.room_id, start: talk.start, end: talk.end },
+    talk: {
+      id: talk.id,
+      title: talk.title,
+      speaker: talk.speaker,
+      room_id: talk.room_id,
+      start: talk.start,
+      end: talk.end,
+      accessibility: talk.accessibility,
+    },
     // The larger of the two counts: someone who only tapped and someone who
     // only asked are both one person in the room.
     people: Math.max(signals.people?.value ?? 0, questions.people?.value ?? 0),

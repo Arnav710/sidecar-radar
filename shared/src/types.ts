@@ -132,7 +132,7 @@ export interface ConfusionSpike {
 }
 
 export interface SpeakerReport {
-  talk: Pick<Talk, "id" | "title" | "speaker" | "room_id" | "start" | "end">;
+  talk: Pick<Talk, "id" | "title" | "speaker" | "room_id" | "start" | "end" | "accessibility">;
   /** Distinct people who asked or tapped anything. Counts only, never ids. */
   people: number;
   totals: { lost: number; got_it: number; questions: number };

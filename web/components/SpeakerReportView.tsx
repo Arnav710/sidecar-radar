@@ -29,6 +29,12 @@ export function SpeakerReportView({ report }: { report: SpeakerReport }) {
         <p className="text-ink-soft">
           {talk.speaker} · {roomLabel(talk.room_id)} · {timeLabel(talk.start)}–{timeLabel(talk.end)}
         </p>
+        {/* Accessibility metadata for this session (review rule 3). */}
+        <ul className="flex flex-wrap gap-2 text-sm" aria-label="Room accessibility">
+          <li className="chip bg-white">{talk.accessibility.captions ? "Live captions" : "No live captions"}</li>
+          <li className="chip bg-white">{talk.accessibility.step_free ? "♿ Step-free access" : "Stairs only"}</li>
+          {talk.accessibility.quiet_room_nearby && <li className="chip bg-white">🤫 Quiet room nearby</li>}
+        </ul>
       </header>
 
       <section className="grid grid-cols-2 gap-3 sm:grid-cols-4">
