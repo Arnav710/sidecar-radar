@@ -2,9 +2,11 @@
 // chart library, no client JavaScript). The dial runs from 0 to twice the SLO
 // threshold: the lime zone is "inside the promise", yellow is "close", orange is
 // "too slow". The needle points at the p95. The only motion is a short needle
-// sweep (SVG animation), and the numbers are always printed next to the dial and
-// in the aria-label, so the gauge is never the only way to read them
-// (review rule 13).
+// sweep (a CSS animation, so reduced-motion settings turn it off). The numbers
+// are always printed next to the dial and in the aria-label, so the gauge is
+// never the only way to read them (review rule 13).
+
+import type React from "react";
 
 const CX = 120;
 const CY = 120;
@@ -69,22 +71,23 @@ export function SpeedGauge({ valueMs, thresholdMs, label }: { valueMs: number | 
         target {sec(thresholdMs)}
       </text>
 
-      {/* The needle sweeps from 0 to its reading. */}
+      {/* The needle rests at its reading. The inner group sweeps in from the far left
+          with a CSS animation, so the site-wide prefers-reduced-motion rule applies. */}
       <g transform={`rotate(${angle} ${CX} ${CY})`} opacity={valueMs === null ? 0.35 : 1}>
-        {valueMs !== null && (
-          <animateTransform
-            attributeName="transform"
-            type="rotate"
-            from={`${rest} ${CX} ${CY}`}
-            to={`${angle} ${CX} ${CY}`}
-            dur="0.9s"
-            fill="freeze"
-            calcMode="spline"
-            keyTimes="0;1"
-            keySplines="0.22 0.61 0.36 1"
-          />
-        )}
-        <polygon points={`${CX - 5},${CY} ${CX + 5},${CY} ${CX},${CY - 74}`} fill="var(--color-ink)" />
+        <g
+          style={
+            valueMs === null
+              ? undefined
+              : ({
+                  transformOrigin: `${CX}px ${CY}px`,
+                  // Start at -90deg overall: the outer group already turns by `angle`.
+                  "--needle-from": `${rest - angle}deg`,
+                  animation: "needle-sweep 0.9s cubic-bezier(0.22, 0.61, 0.36, 1) both",
+                } as React.CSSProperties)
+          }
+        >
+          <polygon points={`${CX - 5},${CY} ${CX + 5},${CY} ${CX},${CY - 74}`} fill="var(--color-ink)" />
+        </g>
       </g>
       <circle cx={CX} cy={CY} r="10" fill="var(--color-ink)" />
       <circle cx={CX} cy={CY} r="4" fill="var(--color-sun)" />

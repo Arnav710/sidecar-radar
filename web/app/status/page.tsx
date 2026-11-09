@@ -110,7 +110,7 @@ export default function StatusPage() {
 
       <section className="grid grid-cols-2 gap-3">
         <div className="sticker flex flex-col gap-1 bg-sky p-4">
-          <span className="font-mono text-xs uppercase tracking-wider text-ink-soft"><span aria-hidden="true">🧠 </span>AI tokens used</span>
+          <span className="font-mono text-xs uppercase tracking-wider text-ink"><span aria-hidden="true">🧠 </span>AI tokens used</span>
           <span className="font-display text-3xl font-extrabold tabular-nums">{h.llmTokens.toLocaleString("en-US")}</span>
         </div>
         <div className={`sticker flex flex-col gap-1 p-4 ${h.aiFallbacks > 0 ? "bg-sun" : "bg-white"}`}>
