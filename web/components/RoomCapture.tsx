@@ -62,7 +62,7 @@ export function RoomCapture({ talk, roomKey, keyOk, joinUrl, qrSvg }: { talk: Ro
     const res = await fetch(`/api/talks/${talk.id}/lines`, {
       method: "POST",
       headers: { "content-type": "application/json", "x-room-key": roomKey },
-      body: JSON.stringify({ text, offset_s: offset }),
+      body: JSON.stringify({ text, offset_s: offset, spoken_at: Date.now() }),
     }).catch(() => null);
     if (!res?.ok) setError("A caption didn't send. Check the room key and connection.");
   }

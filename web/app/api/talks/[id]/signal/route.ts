@@ -3,6 +3,7 @@ import { offsetSince } from "@sidecar/shared";
 import { explainWindow, tryAi } from "@/lib/ai";
 import { es, INDEX } from "@/lib/es";
 import { currentUid, hashUid } from "@/lib/identity";
+import { m } from "@sidecar/shared/otel";
 import { getTalk } from "@/lib/talks";
 import { transcriptWindow } from "@/lib/transcripts";
 
@@ -24,6 +25,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const offset_s = offsetSince(talk.start);
   const signal: Signal = { uid_hash: hashUid(await currentUid()), talk_id: talk.id, offset_s, ts: new Date().toISOString(), type };
   await es().index({ index: INDEX.signals, document: signal });
+  m().signals.add(1, { "sidecar.signal.type": type, "sidecar.room.id": talk.room_id });
 
   if (type !== "lost") return Response.json({ ok: true, offset_s });
 

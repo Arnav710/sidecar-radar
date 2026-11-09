@@ -19,7 +19,7 @@ spec:
       containers:
         - name: worker
           image: app
-          command: ["node", "worker/dist/index.js"]
+          command: ["node", "worker/dist/index.mjs"]
           ports:
             - name: http
               containerPort: 8081
@@ -28,6 +28,24 @@ spec:
               value: "8081"
             - name: OTEL_SERVICE_NAME
               value: "sidecar-worker"
+            - name: DEPLOYMENT_ENVIRONMENT
+              value: "hackathon"
+            # Kubernetes context on every span, metric and log, so Dash0 data
+            # lines up with what Radar shows for the same pod.
+            - name: K8S_POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: K8S_NAMESPACE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: K8S_NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            - name: OTEL_RESOURCE_ATTRIBUTES
+              value: "k8s.pod.name=$(K8S_POD_NAME),k8s.namespace.name=$(K8S_NAMESPACE_NAME),k8s.node.name=$(K8S_NODE_NAME),k8s.deployment.name=worker"
           envFrom:
             - secretRef:
                 name: app-credentials

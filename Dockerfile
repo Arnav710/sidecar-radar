@@ -1,5 +1,5 @@
 # One image for both Deployments: `app` runs the Next.js server, `worker` runs
-# worker/dist/index.js (see deploy/). Multi-stage so the runtime image is small.
+# worker/dist/index.mjs (see deploy/). Multi-stage so the runtime image is small.
 
 FROM node:22-alpine AS build
 WORKDIR /repo

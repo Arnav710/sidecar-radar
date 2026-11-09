@@ -1,4 +1,5 @@
 import http from "node:http";
+import { log, withSpan } from "@sidecar/shared/otel";
 
 // The worker runs slow, async jobs off the request path (question
 // classification, match recomputation, conversation kits, speaker reports).
@@ -29,9 +30,10 @@ const server = http.createServer((req, res) => {
       // Answer right away; the job runs in the background.
       send(res, 202, "accepted\n");
       const job = jobs[name];
-      if (!job) return console.log(JSON.stringify({ msg: "job.unknown", job: name }));
-      job(raw ? JSON.parse(raw) : {}).catch((err) =>
-        console.error(JSON.stringify({ msg: "job.failed", job: name, error: String(err) })),
+      if (!job) return log("warn", "job.unknown", { "sidecar.job.name": name });
+      // Each job is its own span, a child of the web request that queued it.
+      withSpan(`job ${name}`, { "sidecar.job.name": name }, () => job(raw ? JSON.parse(raw) : {})).catch((err) =>
+        log("error", "job.failed", { "sidecar.job.name": name, "error.type": (err as Error).name }),
       );
     });
     return;
@@ -40,4 +42,4 @@ const server = http.createServer((req, res) => {
   send(res, 404, "not found\n");
 });
 
-server.listen(port, () => console.log(JSON.stringify({ msg: "worker.listening", port })));
+server.listen(port, () => log("info", "worker.listening", { "server.port": port }));

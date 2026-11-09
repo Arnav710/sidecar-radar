@@ -1,4 +1,5 @@
 import OpenAI from "openai";
+import { log, m, withSpan } from "@sidecar/shared/otel";
 
 // All LLM calls go through this file (Gitar rule 9). When OPENAI_API_KEY is
 // not set, callers fall back to quoting the transcript, so the app still works.
@@ -24,22 +25,35 @@ export async function tryAi(fn: () => Promise<string>): Promise<string | null> {
   try {
     return (await fn()) || null;
   } catch (err) {
-    console.error(JSON.stringify({ msg: "ai.failed", error: (err as Error).name, status: (err as { status?: number }).status }));
+    log("warn", "ai.failed_fallback_to_quote", { "error.type": (err as Error).name, "http.response.status_code": (err as { status?: number }).status ?? 0 });
     return null;
   }
 }
 
-async function complete(system: string, user: string, maxTokens = 350): Promise<string> {
-  const res = await openai().chat.completions.create({
-    model: MODEL,
-    temperature: 0.3,
-    max_tokens: maxTokens,
-    messages: [
-      { role: "system", content: system },
-      { role: "user", content: user },
-    ],
+/**
+ * One chat completion, traced with OpenTelemetry GenAI conventions so Dash0
+ * shows model, token usage and duration per call. Prompts are never recorded.
+ */
+async function complete(operation: string, system: string, user: string, maxTokens = 350): Promise<string> {
+  const started = performance.now();
+  const attrs = { "gen_ai.system": "openai", "gen_ai.operation.name": "chat", "gen_ai.request.model": MODEL, "sidecar.ai.operation": operation };
+  return withSpan(`gen_ai.chat ${MODEL}`, attrs, async (set) => {
+    const res = await openai().chat.completions.create({
+      model: MODEL,
+      temperature: 0.3,
+      max_tokens: maxTokens,
+      messages: [
+        { role: "system", content: system },
+        { role: "user", content: user },
+      ],
+    });
+    const usage = { input: res.usage?.prompt_tokens ?? 0, output: res.usage?.completion_tokens ?? 0 };
+    set({ "gen_ai.response.model": res.model, "gen_ai.usage.input_tokens": usage.input, "gen_ai.usage.output_tokens": usage.output });
+    m().llmTokens.add(usage.input, { ...attrs, "gen_ai.token.type": "input" });
+    m().llmTokens.add(usage.output, { ...attrs, "gen_ai.token.type": "output" });
+    m().llmDuration.record((performance.now() - started) / 1000, attrs);
+    return res.choices[0]?.message?.content?.trim() ?? "";
   });
-  return res.choices[0]?.message?.content?.trim() ?? "";
 }
 
 export interface ContextLine {
@@ -50,6 +64,7 @@ export interface ContextLine {
 /** Answer an attendee's private question, grounded in what was said. */
 export async function answerQuestion(question: string, talkTitle: string, context: ContextLine[]): Promise<string> {
   return complete(
+    "answer_question",
     "You help a conference attendee understand a live talk. Answer in 2-4 short sentences, plainly. " +
       "Ground the answer in the transcript excerpts. Cite the excerpt label in square brackets, like [this talk 14:02]. " +
       "If the excerpts don't cover it, say so briefly and give a short general answer.",
@@ -60,6 +75,7 @@ export async function answerQuestion(question: string, talkTitle: string, contex
 /** "I'm lost": explain the last ~30 seconds at the attendee's level. */
 export async function explainWindow(talkTitle: string, lines: string[], level: string): Promise<string> {
   return complete(
+    "explain_last_30s",
     `You re-explain the last 30 seconds of a conference talk for a ${level} listener who just got lost. ` +
       "Use 2-3 short sentences and an everyday analogy if it helps. Define any jargon. No preamble.",
     `Talk: ${talkTitle}\n\nWhat the speaker just said:\n${lines.join("\n")}`,
