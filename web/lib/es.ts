@@ -8,6 +8,8 @@ export const INDEX = {
   transcripts: "sidecar-transcripts",
   questions: "sidecar-questions",
   signals: "sidecar-signals",
+  profiles: "sidecar-profiles",
+  events: "sidecar-events",
 } as const;
 
 /**

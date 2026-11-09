@@ -72,6 +72,26 @@ export async function answerQuestion(question: string, talkTitle: string, contex
   );
 }
 
+/**
+ * Find event announcements in chat messages or posts ("drinks at 6pm at Whiskey Street").
+ * Returns the model's raw JSON text; the caller validates it.
+ */
+export async function extractEventAnnouncements(messages: string[], todayLocal: string): Promise<string> {
+  return complete(
+    "extract_events",
+    "You read short chat messages and posts from a conference and pick out announcements of real events people can attend " +
+      "(meetups, workshops, dinners, drinks, hikes, after-parties). Ignore everything else. " +
+      `Today's date at the venue is ${todayLocal} (Mountain Time). ` +
+      "Each message starts with the date it was posted, like [posted 2026-11-07]. Read words like tonight, tomorrow or Friday " +
+      "from that posted date, not from today. " +
+      'Reply with ONLY a JSON array. Each item: {"i": message number, "title": string, "start_local": "YYYY-MM-DDTHH:mm", ' +
+      '"end_local": "YYYY-MM-DDTHH:mm" or null, "location": string or null, "kind": "networking"|"workshop"|"social"|"other", "topics": string[]}. ' +
+      "Skip a message if you cannot tell when it happens. Reply [] if nothing qualifies.",
+    messages.map((t, i) => `${i}: ${t.replace(/\s+/g, " ").slice(0, 400)}`).join("\n"),
+    900,
+  );
+}
+
 /** "I'm lost": explain the last ~30 seconds at the attendee's level. */
 export async function explainWindow(talkTitle: string, lines: string[], level: string): Promise<string> {
   return complete(

@@ -96,3 +96,78 @@ export interface ExplainResponse {
   window: { from_s: number; to_s: number };
   mode: "ai" | "extract";
 }
+
+// ---- Attendee profile ----
+
+/** Why someone came to the conference. Drives how the schedule is ranked. */
+export const GOALS = ["solve_problem", "learn", "meet_peers", "hire", "find_job", "evaluate_tools"] as const;
+export type Goal = (typeof GOALS)[number];
+
+export const PACES = ["chill", "balanced", "packed"] as const;
+export type Pace = (typeof PACES)[number];
+
+export const LEVELS = ["new", "comfortable", "advanced"] as const;
+export type SkillLevel = (typeof LEVELS)[number];
+
+/** What the attendee types in on the onboarding screen. */
+export interface ProfileInput {
+  display_name: string;
+  role: string;
+  years: number;
+  company_type: string;
+  /** What they are building or solving right now. The strongest signal for ranking. */
+  working_on: string;
+  /** What they are stuck on right now. */
+  stuck_on: string;
+  /** The kind of people they want to meet, in their own words. */
+  want_to_meet: string;
+  goals: Goal[];
+  /** Topics they care about, each with their level, e.g. { kubernetes: "advanced" }. */
+  topic_levels: Record<string, SkillLevel>;
+  pace: Pace;
+  open_to_meet: boolean;
+}
+
+/** A stored profile. `uid` is the anonymous browser id; never shown to other attendees. */
+export interface Profile extends ProfileInput {
+  uid: string;
+  updated_at: string;
+}
+
+// ---- Events outside the talk schedule (Luma, Slack, X) ----
+
+export type OutsideSource = "luma" | "slack" | "x";
+export type OutsideKind = "networking" | "workshop" | "social" | "other";
+
+/** Accessibility facts for a side event. null means unknown: these come from the event text, so we only ever say yes when it is stated. */
+export interface EventAccessibility {
+  captions: boolean | null;
+  step_free: boolean | null;
+  quiet_room_nearby: boolean | null;
+}
+
+/** A side event found on Luma, or announced in Slack or on X. Times are ISO 8601 in UTC. */
+export interface OutsideEvent {
+  /** Stable id: `${source}:${id from that source}`, so re-syncing never duplicates. */
+  id: string;
+  source: OutsideSource;
+  title: string;
+  description: string;
+  start: string;
+  end?: string;
+  location?: string;
+  url?: string;
+  kind: OutsideKind;
+  topics: string[];
+  /** Accessibility metadata (repo rule 3). */
+  accessibility: EventAccessibility;
+  synced_at: string;
+}
+
+export interface SourceSyncResult {
+  source: OutsideSource;
+  /** "skipped" means the keys for this source are not set; it is not an error. */
+  status: "ok" | "skipped" | "error";
+  found: number;
+  message?: string;
+}
