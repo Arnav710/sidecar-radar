@@ -1,0 +1,17 @@
+{
+  "_note": "Demo venue floor plan (not the real building). x/y are meters on a 120 x 70 m grid; seed maps them to lat/lon around the venue so geo_distance works.",
+  "origin": { "lat": 40.7593, "lon": -111.8810 },
+  "spots": [
+    { "id": "main", "name": "Main stage", "kind": "room", "x": 60, "y": 12, "w": 44, "h": 18, "capacity": 600, "live_count": 380 },
+    { "id": "room-a", "name": "Room A", "kind": "room", "x": 14, "y": 40, "w": 22, "h": 16, "capacity": 150, "live_count": 90 },
+    { "id": "room-b", "name": "Room B", "kind": "room", "x": 40, "y": 52, "w": 22, "h": 16, "capacity": 150, "live_count": 140 },
+    { "id": "room-c", "name": "Room C", "kind": "room", "x": 80, "y": 52, "w": 22, "h": 16, "capacity": 120, "live_count": 60 },
+    { "id": "room-d", "name": "Room D (upstairs)", "kind": "room", "x": 106, "y": 40, "w": 22, "h": 16, "capacity": 120, "live_count": 70 },
+    { "id": "coffee-hall-a", "name": "Coffee bar, Hall A", "kind": "coffee", "x": 24, "y": 22, "w": 10, "h": 7, "capacity": 30, "live_count": 26 },
+    { "id": "coffee-hall-b", "name": "Coffee bar, Hall B", "kind": "coffee", "x": 60, "y": 40, "w": 10, "h": 7, "capacity": 30, "live_count": 8 },
+    { "id": "coffee-hall-c", "name": "Coffee bar, Hall C", "kind": "coffee", "x": 98, "y": 22, "w": 10, "h": 7, "capacity": 30, "live_count": 12 },
+    { "id": "lounge-west", "name": "West lounge", "kind": "lounge", "x": 12, "y": 62, "w": 12, "h": 8, "capacity": 40, "live_count": 15 },
+    { "id": "lounge-east", "name": "East lounge", "kind": "lounge", "x": 108, "y": 62, "w": 12, "h": 8, "capacity": 40, "live_count": 35 },
+    { "id": "quiet-room", "name": "Quiet room", "kind": "quiet", "x": 92, "y": 64, "w": 9, "h": 6, "capacity": 12, "live_count": 3 }
+  ]
+}

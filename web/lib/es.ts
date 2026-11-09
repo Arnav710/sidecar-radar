@@ -12,6 +12,8 @@ export const INDEX = {
   events: "sidecar-events",
   schedules: "sidecar-schedules",
   people: "sidecar-people",
+  venue: "sidecar-venue",
+  meetups: "sidecar-meetups",
   matches: "sidecar-matches",
   notes: "sidecar-notes",
   folders: "sidecar-folders",

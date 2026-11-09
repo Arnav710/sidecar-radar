@@ -77,6 +77,17 @@ const indices: Record<string, Record<string, unknown>> = {
     text: { type: "text" }, quote: { type: "text" }, offset_s: int, created_at: date,
   },
   "sidecar-folders": { id: kw, uid: kw, name: kw, created_at: date },
+  // Demo venue: rooms and meeting spots with geo_point locations, so meetups can
+  // pick the nearest uncrowded spot with a geo_distance sort.
+  "sidecar-venue": {
+    id: kw, name: { type: "text" }, kind: kw, location: { type: "geo_point" },
+    x: { type: "float" }, y: { type: "float" }, w: { type: "float" }, h: { type: "float" },
+    capacity: int, live_count: int,
+  },
+  // A proposed meetup for a mutual match (id = the match id).
+  "sidecar-meetups": {
+    match_id: kw, spot_id: kw, start: date, end: date, accepted: kw, state: kw, walk: { type: "object", enabled: false }, updated_at: date,
+  },
   // Side events from Luma, Slack and X (not part of the main talk schedule).
   "sidecar-events": {
     id: kw, source: kw, title: { type: "text" }, ...searchable("description"),
