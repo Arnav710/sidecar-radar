@@ -13,8 +13,7 @@
       "search",
       "networking"
     ],
-    "is_recorded": false,
-    "speaker_token": "spk-sidecar-pitch"
+    "is_recorded": false
   },
   {
     "id": "otel-at-scale",
@@ -31,8 +30,7 @@
       "cost",
       "sampling"
     ],
-    "is_recorded": true,
-    "speaker_token": "spk-otel-at-scale"
+    "is_recorded": true
   },
   {
     "id": "ebpf-security-101",
@@ -48,8 +46,7 @@
       "security",
       "kernel"
     ],
-    "is_recorded": true,
-    "speaker_token": "spk-ebpf-101"
+    "is_recorded": true
   },
   {
     "id": "platform-golden-paths",
@@ -65,8 +62,7 @@
       "developer experience",
       "backstage"
     ],
-    "is_recorded": true,
-    "speaker_token": "spk-golden-paths"
+    "is_recorded": true
   },
   {
     "id": "llm-latency-k8s",
@@ -84,8 +80,7 @@
       "autoscaling",
       "latency"
     ],
-    "is_recorded": true,
-    "speaker_token": "spk-llm-latency"
+    "is_recorded": true
   },
   {
     "id": "tail-sampling-deep-dive",
@@ -102,8 +97,7 @@
       "tracing",
       "collector"
     ],
-    "is_recorded": false,
-    "speaker_token": "spk-tail-deep-dive"
+    "is_recorded": false
   },
   {
     "id": "gitops-rollbacks",
@@ -120,8 +114,7 @@
       "canary",
       "incident response"
     ],
-    "is_recorded": true,
-    "speaker_token": "spk-gitops-rollbacks"
+    "is_recorded": true
   },
   {
     "id": "first-kubecon",
@@ -137,7 +130,6 @@
       "kubernetes",
       "getting started"
     ],
-    "is_recorded": true,
-    "speaker_token": "spk-first-year"
+    "is_recorded": true
   }
 ]

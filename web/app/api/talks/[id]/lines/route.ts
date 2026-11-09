@@ -11,7 +11,8 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const { id } = await params;
   const talk = await getTalk(id);
   if (!talk) return Response.json({ error: "talk not found" }, { status: 404 });
-  if (req.headers.get("x-room-key") !== talk.speaker_token) {
+  // A talk without a room key accepts no captions (fail closed).
+  if (!talk.speaker_token || req.headers.get("x-room-key") !== talk.speaker_token) {
     return Response.json({ error: "wrong room key" }, { status: 403 });
   }
 
