@@ -219,3 +219,132 @@ export interface SourceSyncResult {
   found: number;
   message?: string;
 }
+
+// ---- Personal notebook ----
+
+/** "favorite" saves a whole talk; "highlight" saves a transcript line; "note" is the attendee's own writing. */
+export type NoteKind = "note" | "highlight" | "favorite";
+
+export interface Note {
+  id: string;
+  uid: string;
+  talk_id: string;
+  conference_id?: string;
+  /** Empty means unfiled. */
+  folder_id?: string;
+  kind: NoteKind;
+  text: string;
+  /** The transcript line this note is about, if any. */
+  quote?: string;
+  /** Seconds into the talk when it was written, so the note can point back to the moment. */
+  offset_s?: number;
+  created_at: string;
+}
+
+export interface Folder {
+  id: string;
+  uid: string;
+  name: string;
+  created_at: string;
+}
+
+export interface CatchUpResponse {
+  summary: string;
+  /** How much of the talk the summary covers, in seconds. */
+  covered_s: number;
+  mode: "ai" | "extract";
+}
+
+export interface ApplyResponse {
+  text: string;
+  mode: "ai" | "extract";
+}
+
+// ---- The recommended schedule ----
+
+/** Something the attendee could do instead of (or in addition to) what the plan picked. */
+export interface PlanAlternative {
+  kind: "talk" | "event";
+  /** Talk id, or event id. */
+  ref: string;
+  title: string;
+  start: string;
+  end: string;
+  room_id?: string;
+  location?: string;
+  url?: string;
+  /** Why it fits this person, in one line. */
+  why: string;
+  /** True for a talk that clashes with a pick: its captions and answers stay available in Sidecar. */
+  catch_up?: boolean;
+}
+
+/**
+ * One row of the day. A "handoff" block is an open slot kept free on purpose:
+ * Sidecar's matching flow will later place a meetup with another attendee there.
+ */
+export interface PlanBlock {
+  /** Unique within the schedule, e.g. "talk:otel-at-scale" or "handoff:2026-11-09T19:00:00.000Z". */
+  id: string;
+  kind: "talk" | "event" | "handoff";
+  start: string;
+  end: string;
+  title: string;
+  /** Talk id or event id (not set on handoff blocks). */
+  ref?: string;
+  room_id?: string;
+  location?: string;
+  url?: string;
+  why?: string;
+  /** Other options for this time, best first. */
+  alternatives?: PlanAlternative[];
+  /** Handoff blocks only: "open" is just a free slot, "held" is reserved for a match. */
+  handoff?: "open" | "held";
+}
+
+export interface Plan {
+  blocks: PlanBlock[];
+  /** Other talks and events that were not picked, best first, so the attendee can add them. */
+  pool: PlanAlternative[];
+  generated_at: string;
+}
+
+/** The schedule an attendee saved, after swapping and removing things. */
+export interface SavedSchedule {
+  uid: string;
+  blocks: PlanBlock[];
+  updated_at: string;
+}
+
+// ---- Connect: blind matches, mutual accept, conversation kit, graph ----
+
+export interface ConversationKit {
+  why: string;
+  opener: string;
+  follow_ups: string[];
+  you_bring: string;
+  they_bring: string;
+}
+
+export type MatchState = "open" | "you_want" | "they_want" | "mutual";
+
+/** What you see about a match. Blind (no name) until state is "mutual". */
+export interface BlindCard {
+  match_id: string;
+  kind: "same_problem" | "same_interests";
+  score: number;
+  shared_problem: string;
+  shared_talks: { id: string; title: string }[];
+  blind: { role: string; years: number; company_type: string; working_on: string; demo: boolean };
+  state: MatchState;
+  reveal?: { display_name: string; kit: ConversationKit };
+}
+
+export interface ConnectResponse {
+  me: { ready: boolean; display_name?: string };
+  cards: BlindCard[];
+}
+
+export interface GraphNode { id: string; label: string; demo: boolean; asked: boolean }
+export interface GraphEdge { source: string; target: string; kind: "same_problem" | "same_interests"; score: number }
+export interface GraphResponse { talk_id: string; nodes: GraphNode[]; edges: GraphEdge[]; generated_at: string }

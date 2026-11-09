@@ -1,105 +1,96 @@
 import Link from "next/link";
-import { Logo } from "@/components/Logo";
-import { ROOM_COLORS, roomLabel, timeLabel } from "@/components/format";
-import { isLive, listTalks } from "@/lib/talks";
+import { redirect } from "next/navigation";
+import { AppShell, Page } from "@/components/AppShell";
+import { dateLabel, untilLabel } from "@/components/format";
+import { IconBook, IconCalendar, IconLink, IconPlus } from "@/components/Icons";
+import { conferenceStatus, listConferences, type Conference } from "@/lib/conferences";
+import { currentUid } from "@/lib/identity";
+import { getProfile } from "@/lib/profiles";
+import { getSchedule } from "@/lib/schedule";
+import { sourceStatus } from "@/lib/sources";
 
 export const dynamic = "force-dynamic";
 
-export default async function Home() {
-  const { talks, connected } = await listTalks();
-  const live = talks.filter((t) => isLive(t));
-  const rest = talks.filter((t) => !isLive(t));
+const SOURCE_INFO = {
+  luma: { name: "Luma", about: "Side events and meetups from calendars you follow" },
+  slack: { name: "Slack", about: "Announcements from the conference channels" },
+  x: { name: "X", about: "Posts about the conference" },
+} as const;
+
+function greeting(): string {
+  const hour = Number(new Intl.DateTimeFormat("en-US", { hour: "numeric", hourCycle: "h23", timeZone: "America/Denver" }).format(new Date()));
+  return hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
+}
+
+// The home screen: pick a conference. Visitors with no profile go to sign-up first.
+export default async function Dashboard() {
+  const uid = await currentUid();
+  const profile = await getProfile(uid);
+  if (!profile) redirect("/onboarding");
+
+  const now = new Date();
+  const conferences = listConferences(now);
+  const plannedCounts = await Promise.all(
+    conferences.map(async (c) => ((await getSchedule(uid, c.id))?.blocks ?? []).filter((b) => b.kind !== "handoff").length),
+  );
 
   return (
-    <main className="mx-auto max-w-5xl px-4 pb-24 pt-6 sm:px-6">
-      <header className="flex items-center justify-between">
-        <Logo />
-        <nav className="flex gap-2 text-sm font-semibold">
-          <span className="chip bg-white">Plan</span>
-          <span className="chip bg-white">Connect</span>
-          <span className="chip bg-white">Recap</span>
-        </nav>
-      </header>
+    <AppShell active="dashboard">
+      <Page wide>
+        <p className="eyebrow">Dashboard</p>
+        <h1 className="mt-1 text-3xl sm:text-4xl">{greeting()}, {profile.display_name.split(" ")[0]}</h1>
+        <p className="mt-2 text-ink-soft">Choose a conference to see your schedule and notebook.</p>
 
-      {/* Hero */}
-      <section className="relative mt-10 grid gap-8 sm:mt-14 sm:grid-cols-[1.4fr_1fr] sm:items-center">
-        <div>
-          <p className="chip mb-5 bg-sun" style={{ ["--tilt" as string]: "-2deg" }}>
-            <span className="inline-block h-2 w-2 animate-pulse-dot rounded-full bg-tangerine" /> live at the conference
-          </p>
-          <h1 className="text-5xl font-extrabold leading-[0.95] sm:text-7xl">
-            Ask the talk <span className="marker">anything.</span>
-            <br />
-            Meet the people <span className="text-tangerine">stuck on the same thing.</span>
-          </h1>
-          <p className="mt-6 max-w-xl text-lg text-ink-soft">
-            Live captions, private questions answered from what the speaker <em>just</em> said, and introductions
-            that come with the conversation already started.
-          </p>
-        </div>
-
-        {/* Floating stickers */}
-        <div className="relative hidden h-72 sm:block" aria-hidden="true">
-          <div className="sticker absolute left-2 top-2 w-56 rotate-[-5deg] animate-pop p-4" style={{ ["--tilt" as string]: "-5deg" }}>
-            <p className="font-mono text-xs text-ink-soft">14:02 · OTel at Scale</p>
-            <p className="mt-1 font-display text-lg font-bold">“How do I sample without losing errors?”</p>
-          </div>
-          <div className="sticker absolute right-0 top-28 w-52 rotate-[4deg] animate-pop bg-lime p-4 [animation-delay:150ms]" style={{ ["--tilt" as string]: "4deg" }}>
-            <p className="font-display text-lg font-bold leading-tight">3 people here asked the same thing</p>
-          </div>
-          <div className="sticker absolute bottom-0 left-10 w-44 rotate-[-2deg] animate-pop bg-lilac p-3 [animation-delay:300ms]" style={{ ["--tilt" as string]: "-2deg" }}>
-            <p className="font-mono text-xs">☕ Coffee bar · Hall B · 11:35</p>
+        <h2 className="mt-10 text-lg">Your conferences</h2>
+        <div className="mt-4 grid gap-4 md:grid-cols-2">
+          {conferences.map((c, i) => <ConferenceCard key={c.id} conf={c} planned={plannedCounts[i]} now={now} />)}
+          <div className="flex flex-col justify-center rounded-[14px] border border-dashed border-line-strong p-5 text-sm text-ink-soft">
+            <p className="flex items-center gap-2 font-semibold text-ink-2"><IconPlus size={16} /> Add a conference</p>
+            <p className="mt-1.5">Real conferences will come from Luma calendars. For now these are demo entries.</p>
           </div>
         </div>
-      </section>
 
-      {/* Talks */}
-      <section className="mt-16">
-        <div className="mb-4 flex items-end justify-between">
-          <h2 className="text-3xl font-extrabold">Happening now</h2>
-          {!connected && <span className="chip bg-bubble">not connected to Elasticsearch yet</span>}
-        </div>
-
-        {connected && talks.length === 0 && <p className="text-ink-soft">No talks yet. Run <code>npm run es:setup</code> then <code>npm run seed</code>.</p>}
-
-        <div className="grid gap-4 sm:grid-cols-2">
-          {[...live, ...rest].map((t, i) => (
-            <Link
-              key={t.id}
-              href={`/talk/${t.id}`}
-              className="sticker group block animate-rise p-5 transition-transform hover:-translate-y-1 hover:rotate-[-0.6deg]"
-              style={{ animationDelay: `${i * 60}ms` }}
-            >
-              <div className="flex items-center justify-between">
-                <span className="chip" style={{ background: ROOM_COLORS[t.room_id] ?? "white" }}>
-                  {roomLabel(t.room_id)}
-                </span>
-                {isLive(t) ? (
-                  <span className="chip bg-tangerine text-white">
-                    <span className="inline-block h-2 w-2 animate-pulse-dot rounded-full bg-white" /> LIVE
-                  </span>
-                ) : (
-                  <span className="font-mono text-xs text-ink-soft">{timeLabel(t.start)}</span>
-                )}
+        <h2 className="mt-12 text-lg">Connections</h2>
+        <p className="mt-1 text-sm text-ink-soft">Where Sidecar looks for events beyond the main talk schedule.</p>
+        <ul className="card mt-4 divide-y divide-line">
+          {sourceStatus().map((s) => (
+            <li key={s.source} className="flex items-center justify-between gap-4 px-5 py-3.5">
+              <div className="min-w-0">
+                <p className="text-sm font-semibold">{SOURCE_INFO[s.source].name}</p>
+                <p className="truncate text-sm text-ink-soft">{SOURCE_INFO[s.source].about}</p>
               </div>
-              <h3 className="mt-3 text-xl font-bold leading-snug group-hover:underline group-hover:decoration-tangerine group-hover:decoration-4 group-hover:underline-offset-4">
-                {t.title}
-              </h3>
-              <p className="mt-1 text-sm text-ink-soft">
-                {t.speaker} · {t.level}
-              </p>
-              {/* Accessibility metadata (conference rule 3). */}
-              {(t.accessibility?.captions || t.accessibility?.step_free || t.accessibility?.quiet_room_nearby) && (
-                <ul className="mt-3 flex flex-wrap gap-1.5" aria-label="Accessibility">
-                  {t.accessibility.captions && <li className="chip bg-white">CC live captions</li>}
-                  {t.accessibility.step_free && <li className="chip bg-white">♿ step-free</li>}
-                  {t.accessibility.quiet_room_nearby && <li className="chip bg-white">🤫 quiet room nearby</li>}
-                </ul>
-              )}
-            </Link>
+              <span className={`pill shrink-0 ${s.configured ? "bg-good-soft text-good" : ""}`}>
+                <IconLink size={13} /> {s.configured ? "Connected" : "Not connected"}
+              </span>
+            </li>
           ))}
-        </div>
-      </section>
-    </main>
+        </ul>
+      </Page>
+    </AppShell>
+  );
+}
+
+function ConferenceCard({ conf, planned, now }: { conf: Conference; planned: number; now: Date }) {
+  const status = conferenceStatus(conf, now);
+  const badge =
+    status === "live" ? <span className="pill bg-good-soft text-good"><span className="h-1.5 w-1.5 animate-pulse-dot rounded-full bg-good" /> Happening now</span>
+    : status === "upcoming" ? <span className="pill">Starts in {untilLabel(Date.parse(conf.start) - now.getTime())}</span>
+    : <span className="pill">Ended</span>;
+
+  return (
+    <article className="card flex flex-col p-5">
+      <div className="flex items-start justify-between gap-3">
+        <h3 className="text-lg">{conf.name}</h3>
+        {badge}
+      </div>
+      <p className="mt-1.5 text-sm text-ink-soft">{conf.tagline}</p>
+      <p className="mt-3 text-sm text-ink-2">{conf.venue} · {conf.city}</p>
+      <p className="text-sm text-ink-soft">{dateLabel(conf.start)}{dateLabel(conf.end) !== dateLabel(conf.start) ? ` – ${dateLabel(conf.end)}` : ""}</p>
+      <p className="mt-3 text-sm">{planned > 0 ? <span className="font-medium">{planned} {planned === 1 ? "session" : "sessions"} planned</span> : <span className="text-ink-soft">No schedule yet</span>}</p>
+      <div className="mt-5 flex flex-wrap gap-2">
+        <Link href={`/c/${conf.id}/schedule`} className="btn btn-primary"><IconCalendar size={16} /> Open schedule</Link>
+        <Link href={`/c/${conf.id}/notebook`} className="btn"><IconBook size={16} /> Notebook</Link>
+      </div>
+    </article>
   );
 }

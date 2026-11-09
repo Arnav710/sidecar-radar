@@ -1,15 +1,13 @@
 import http from "node:http";
 import { log, withSpan } from "@sidecar/shared/otel";
+import { jobs } from "./jobs";
 
 // The worker runs slow, async jobs off the request path (question
 // classification, match recomputation, conversation kits, speaker reports).
-// The web app calls POST /jobs/<name> fire-and-forget. Jobs land in later PRs;
-// for now each job is acknowledged and logged (IDs only, never content).
+// The web app calls POST /jobs/<name> fire-and-forget (jobs live in jobs.ts).
 
 const port = Number(process.env.PORT || 8081);
 
-type Job = (payload: unknown) => Promise<void>;
-const jobs: Record<string, Job> = {};
 
 function send(res: http.ServerResponse, status: number, body: string) {
   res.writeHead(status, { "content-type": "text/plain" });

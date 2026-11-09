@@ -1,3 +1,4 @@
+import { queueJob } from "@/lib/worker";
 import { NextResponse } from "next/server";
 import { currentUid, isAnonymous } from "@/lib/identity";
 import { getProfile, parseProfileInput, saveProfile } from "@/lib/profiles";
@@ -24,7 +25,9 @@ export async function POST(req: Request) {
   if (!parsed.ok) return NextResponse.json({ error: parsed.error }, { status: 400 });
 
   try {
-    return NextResponse.json(await saveProfile(uid, parsed.value));
+    const saved = await saveProfile(uid, parsed.value);
+    queueJob("rebuild-person", { uid }); // refresh this person's matching doc
+    return NextResponse.json(saved);
   } catch {
     return NextResponse.json({ error: "Could not save the profile." }, { status: 502 });
   }

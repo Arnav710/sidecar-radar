@@ -20,4 +20,5 @@ export function middleware(req: NextRequest) {
   return res;
 }
 
-export const config = { matcher: ["/((?!_next/|healthz|readyz|api/healthz|api/readyz|icon.svg).*)"] };
+// The join route (what a talk's QR code opens) makes its own id, so it is left out here.
+export const config = { matcher: ["/((?!_next/|healthz|readyz|api/healthz|api/readyz|icon.svg|join/).*)"] };
