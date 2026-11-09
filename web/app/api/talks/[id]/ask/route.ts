@@ -3,7 +3,7 @@ import type { AskResponse, Question, Talk } from "@sidecar/shared";
 import { formatOffset, offsetSince } from "@sidecar/shared";
 import { m, withSpan } from "@sidecar/shared/otel";
 import { answerQuestion, tryAi } from "@/lib/ai";
-import { es, INDEX } from "@/lib/es";
+import { es, INDEX, retryOnInferenceLimit } from "@/lib/es";
 import { currentUid } from "@/lib/identity";
 import { getTalk, listTalks } from "@/lib/talks";
 import { citationLabel, nextStops, searchSaid } from "@/lib/transcripts";
@@ -52,7 +52,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       text,
       answer,
     };
-    await es().index({ index: INDEX.questions, id: q.id, document: q });
+    await retryOnInferenceLimit(() => es().index({ index: INDEX.questions, id: q.id, document: q }));
 
     // Classify the question in the background (worker), for matching.
     if (process.env.WORKER_URL) {

@@ -23,6 +23,17 @@ interface DemoAttendee {
   questions: [string, string, string, string, string][];
 }
 
+/** Elastic Cloud trial embeddings are rate limited (429): back off and retry. */
+async function bulkWithRetry(operations: object[]) {
+  for (let attempt = 1; ; attempt++) {
+    const res = await es.bulk({ operations, refresh: true });
+    const limited = res.errors && res.items.some((i) => JSON.stringify(i.index?.error ?? "").includes("429"));
+    if (!limited || attempt >= 6) return res;
+    console.log(`embedding rate limit, retrying in ${attempt * 10}s…`);
+    await new Promise((r) => setTimeout(r, attempt * 10_000));
+  }
+}
+
 async function main() {
   const people: DemoAttendee[] = JSON.parse(readFileSync("data/attendees.json", "utf8"));
   const talks = await es.mget<{ id: string; title: string; start: string; end: string; room_id: string }>({
@@ -71,7 +82,7 @@ async function main() {
     ops.push({ index: { _index: "sidecar-signals", _id: `${uid}-pitch-got` } }, { uid_hash: `demo-${i}`, talk_id: "sidecar-live-pitch", offset_s: 60 + i * 3, ts: now, type: "got_it" });
   });
 
-  const res = await es.bulk({ operations: ops, refresh: true });
+  const res = await bulkWithRetry(ops);
   if (res.errors) throw new Error(JSON.stringify(res.items.find((i) => i.index?.error)?.index?.error));
 
   for (const p of people) await rebuildPerson(es, p.id, { demo: true });
