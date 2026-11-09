@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { BlindCard, ConnectResponse } from "@sidecar/shared";
 import { AppShell } from "./AppShell";
+import { MeetupCard } from "./MeetupCard";
 
 const POLL_MS = 3000;
 
@@ -182,8 +183,7 @@ function RevealCard({ card }: { card: BlindCard }) {
           <p className="mt-1"><b>{display_name}:</b> {kit.they_bring}</p>
         </div>
       </div>
-      {/* Meetup booking (time + spot on the venue map) plugs in here. */}
-      <p className="mt-4 font-mono text-xs text-ink-soft">📍 Meetup time and spot: coming from the venue map</p>
+      <MeetupCard matchId={card.match_id} otherName={display_name} />
     </article>
   );
 }

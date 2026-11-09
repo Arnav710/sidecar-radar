@@ -348,3 +348,33 @@ export interface ConnectResponse {
 export interface GraphNode { id: string; label: string; demo: boolean; asked: boolean }
 export interface GraphEdge { source: string; target: string; kind: "same_problem" | "same_interests"; score: number }
 export interface GraphResponse { talk_id: string; nodes: GraphNode[]; edges: GraphEdge[]; generated_at: string }
+
+// ---- Meetups (booked for mutual matches) ----
+
+export interface VenueSpot {
+  id: string; name: string; kind: "room" | "coffee" | "lounge" | "quiet";
+  x: number; y: number; w: number; h: number; capacity: number; live_count: number;
+  location: { lat: number; lon: number };
+  /** Accessibility metadata (rule 3). */
+  accessibility?: { step_free: boolean; quiet: boolean; seating: boolean };
+}
+
+export interface MeetupDoc {
+  match_id: string;
+  spot_id: string;
+  start: string;
+  end: string;
+  accepted: string[];
+  state: "proposed" | "confirmed";
+  /** Next room and walking minutes per uid. */
+  walk: Record<string, { room_id: string; minutes: number }>;
+  updated_at: string;
+}
+
+export interface MeetupView {
+  meetup: MeetupDoc;
+  spot: VenueSpot;
+  you: { room_id: string; minutes: number; accepted: boolean };
+  them: { room_id: string; minutes: number; accepted: boolean };
+  venue: VenueSpot[];
+}
