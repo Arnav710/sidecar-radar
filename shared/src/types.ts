@@ -293,11 +293,11 @@ export interface BlindCard {
 }
 
 export interface ConnectResponse {
-  me: { ready: boolean; display_name?: string };
+  me: { ready: boolean; display_name?: string; talk_id?: string; talk_title?: string; my_problems?: string[] };
   cards: BlindCard[];
 }
 
-export interface GraphNode { id: string; label: string; demo: boolean; asked: boolean }
+export interface GraphNode { id: string; label: string; demo: boolean; asked: boolean; me?: boolean }
 export interface GraphEdge { source: string; target: string; kind: "same_problem" | "same_interests"; score: number }
 export interface GraphResponse { talk_id: string; nodes: GraphNode[]; edges: GraphEdge[]; generated_at: string }
 

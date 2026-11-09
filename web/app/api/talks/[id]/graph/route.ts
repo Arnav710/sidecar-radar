@@ -2,6 +2,7 @@ import type { GraphEdge, GraphNode, GraphResponse } from "@sidecar/shared";
 import type { PersonDoc } from "@sidecar/shared/people";
 import { withSpan } from "@sidecar/shared/otel";
 import { es, INDEX } from "@/lib/es";
+import { currentUid } from "@/lib/identity";
 import { candidatesFor } from "@/lib/matching";
 
 export const dynamic = "force-dynamic";
@@ -45,7 +46,8 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
       }
     });
 
-    const nodes: GraphNode[] = people.map((p) => ({ id: p.uid, label: label(p), demo: p.demo, asked: p.asked_in.includes(id) }));
+    const meUid = await currentUid();
+    const nodes: GraphNode[] = people.map((p) => ({ id: p.uid, label: p.uid === meUid ? "You" : label(p), demo: p.demo, asked: p.asked_in.includes(id), me: p.uid === meUid }));
     set({ "sidecar.graph.nodes": nodes.length, "sidecar.graph.edges": edges.size });
     const body: GraphResponse = { talk_id: id, nodes, edges: [...edges.values()], generated_at: new Date().toISOString() };
     return Response.json(body);

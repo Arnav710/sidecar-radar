@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { BlindCard, ConnectResponse } from "@sidecar/shared";
 import { AppShell } from "./AppShell";
 import { MeetupCard } from "./MeetupCard";
+import { PeopleGraph } from "./PeopleGraph";
 
 const POLL_MS = 3000;
 
@@ -103,7 +104,43 @@ export function ConnectBoard() {
         </p>
       )}
 
-      <div className="mt-8 grid gap-5 sm:grid-cols-2">
+      {data?.me.ready && (
+        <section className="mt-8 space-y-4" aria-label="How you were matched">
+          <div className="sticker bg-white p-5">
+            <p className="font-mono text-xs uppercase tracking-widest text-ink-soft">Matched from what you asked</p>
+            {data.me.my_problems && data.me.my_problems.length > 0 ? (
+              <div className="mt-2 flex flex-wrap gap-2">
+                {data.me.my_problems.map((p) => (
+                  <span key={p} className="chip bg-tangerine px-3 py-1 text-sm text-white">🔥 {p}</span>
+                ))}
+              </div>
+            ) : (
+              <p className="mt-2 text-ink-soft">
+                No &ldquo;how do I…&rdquo; question yet, so these matches come from your talks and profile. Ask a real question in a talk to find people stuck on the same problem.
+              </p>
+            )}
+            <p className="mt-3 text-sm text-ink-soft">
+              Elasticsearch ranks everyone with one query: 60% how close your problems are, 30% rare talks you both picked, 10% what you&apos;re working on.
+            </p>
+          </div>
+
+          {data.me.talk_id && (
+            <div>
+              <div className="mb-2 flex flex-wrap items-end justify-between gap-2">
+                <h2 className="text-2xl font-extrabold">Your hallway graph</h2>
+                <a href={`/talk/${data.me.talk_id}/graph`} target="_blank" rel="noreferrer" className="btn btn-sm bg-lime">
+                  Open full screen ↗
+                </a>
+              </div>
+              <p className="mb-2 text-sm text-ink-soft">Everyone in {data.me.talk_title ?? "this talk"}, linked by shared problems. It updates as people ask.</p>
+              <PeopleGraph talk={{ id: data.me.talk_id, title: data.me.talk_title ?? "", room_id: "" }} embedded />
+            </div>
+          )}
+        </section>
+      )}
+
+      {data?.me.ready && data.cards.length > 0 && <h2 className="mt-10 text-2xl font-extrabold">People to meet</h2>}
+      <div className="mt-4 grid gap-5 sm:grid-cols-2">
         {data?.cards.map((c, i) => (
           <MatchCard key={c.match_id} card={c} index={i} busy={busy === c.match_id} onWant={() => want(c)} />
         ))}
