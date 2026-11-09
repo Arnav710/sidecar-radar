@@ -13,7 +13,12 @@
       "search",
       "networking"
     ],
-    "is_recorded": false
+    "is_recorded": false,
+    "accessibility": {
+      "captions": true,
+      "step_free": true,
+      "quiet_room_nearby": false
+    }
   },
   {
     "id": "otel-at-scale",
@@ -30,7 +35,12 @@
       "cost",
       "sampling"
     ],
-    "is_recorded": true
+    "is_recorded": true,
+    "accessibility": {
+      "captions": true,
+      "step_free": true,
+      "quiet_room_nearby": false
+    }
   },
   {
     "id": "ebpf-security-101",
@@ -46,7 +56,12 @@
       "security",
       "kernel"
     ],
-    "is_recorded": true
+    "is_recorded": true,
+    "accessibility": {
+      "captions": true,
+      "step_free": true,
+      "quiet_room_nearby": false
+    }
   },
   {
     "id": "platform-golden-paths",
@@ -62,7 +77,12 @@
       "developer experience",
       "backstage"
     ],
-    "is_recorded": true
+    "is_recorded": true,
+    "accessibility": {
+      "captions": true,
+      "step_free": true,
+      "quiet_room_nearby": true
+    }
   },
   {
     "id": "llm-latency-k8s",
@@ -80,7 +100,12 @@
       "autoscaling",
       "latency"
     ],
-    "is_recorded": true
+    "is_recorded": true,
+    "accessibility": {
+      "captions": false,
+      "step_free": false,
+      "quiet_room_nearby": false
+    }
   },
   {
     "id": "tail-sampling-deep-dive",
@@ -97,7 +122,12 @@
       "tracing",
       "collector"
     ],
-    "is_recorded": false
+    "is_recorded": false,
+    "accessibility": {
+      "captions": false,
+      "step_free": true,
+      "quiet_room_nearby": false
+    }
   },
   {
     "id": "gitops-rollbacks",
@@ -114,7 +144,12 @@
       "canary",
       "incident response"
     ],
-    "is_recorded": true
+    "is_recorded": true,
+    "accessibility": {
+      "captions": false,
+      "step_free": true,
+      "quiet_room_nearby": false
+    }
   },
   {
     "id": "first-kubecon",
@@ -130,6 +165,11 @@
       "kubernetes",
       "getting started"
     ],
-    "is_recorded": true
+    "is_recorded": true,
+    "accessibility": {
+      "captions": true,
+      "step_free": true,
+      "quiet_room_nearby": false
+    }
   }
 ]

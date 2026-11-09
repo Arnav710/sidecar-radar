@@ -6,7 +6,10 @@ import { formatOffset, offsetSince } from "@sidecar/shared";
 import { Logo } from "./Logo";
 import { roomLabel, timeLabel } from "./format";
 
-type PublicTalk = { id: string; title: string; speaker: string; room_id: string; start: string; end: string; level: string };
+type PublicTalk = {
+  id: string; title: string; speaker: string; room_id: string; start: string; end: string; level: string;
+  accessibility?: { captions: boolean; step_free: boolean; quiet_room_nearby: boolean };
+};
 
 type Card =
   | { kind: "answer"; id: string; question: string; data: AskResponse }
@@ -148,7 +151,13 @@ export function LiveTalk({ talk }: { talk: PublicTalk }) {
           <Logo dark />
           <div className="ml-2 hidden min-w-0 flex-1 sm:block">
             <p className="truncate font-display text-lg font-bold">{talk.title}</p>
-            <p className="text-sm text-paper/60">{talk.speaker}</p>
+            <p className="text-sm text-paper/60">
+              {talk.speaker}
+              {/* Accessibility metadata (conference rule 3). */}
+              {talk.accessibility?.step_free && <span className="ml-2">· ♿ step-free</span>}
+              {talk.accessibility?.quiet_room_nearby && <span className="ml-2">· 🤫 quiet room nearby</span>}
+              {talk.accessibility && !talk.accessibility.step_free && <span className="ml-2">· stairs only</span>}
+            </p>
           </div>
           <span className="chip ml-auto border-paper bg-lilac text-ink">{roomLabel(talk.room_id)}</span>
           <span className="chip border-paper bg-tangerine text-white">

@@ -25,6 +25,8 @@ interface SeedTalk {
   id: string; title: string; abstract: string; speaker: string; room_id: string;
   start_in_min: number; duration_min: number; level: string; topics: string[];
   is_recorded: boolean;
+  /** Per-session facts for our demo venue (rule 3): copied as-is, never guessed. */
+  accessibility: { captions: boolean; step_free: boolean; quiet_room_nearby: boolean };
 }
 
 const KEYS_FILE = ".room-keys.json";
@@ -33,6 +35,8 @@ const minutes = (m: number) => new Date(Date.now() + m * 60_000);
 
 async function main() {
   const seed: SeedTalk[] = JSON.parse(readFileSync("data/talks.json", "utf8"));
+  const missing = seed.filter((t) => !t.accessibility).map((t) => t.id);
+  if (missing.length) throw new Error(`talks without accessibility metadata: ${missing.join(", ")}`);
   const keys: Record<string, string> = existsSync(KEYS_FILE) ? JSON.parse(readFileSync(KEYS_FILE, "utf8")) : {};
   for (const t of seed) keys[t.id] ??= randomBytes(12).toString("base64url");
   writeFileSync(KEYS_FILE, JSON.stringify(keys, null, 2) + "\n", { mode: 0o600 });
@@ -43,7 +47,6 @@ async function main() {
     start: minutes(start_in_min).toISOString(),
     end: minutes(start_in_min + duration_min).toISOString(),
     conference_id: "cnh-2026",
-    accessibility: { captions: true, step_free: true, quiet_room_nearby: t.room_id === "room-c" },
   }));
 
   const ops = talks.flatMap((t) => [{ index: { _index: "sidecar-talks", _id: t.id } }, t]);
