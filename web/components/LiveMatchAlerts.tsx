@@ -92,7 +92,7 @@ export function LiveMatchAlerts({ showSuggestions = false }: { showSuggestions?:
           {alert.card.shared_problem && <p className="mt-1 text-sm">Shared problem: <b>{alert.card.shared_problem}</b></p>}
           <div className="mt-3 flex gap-2">
             {alert.kind === "mutual" ? (
-              <Link href="/connect" className="btn btn-sm bg-tangerine text-white">See who + meetup</Link>
+              <Link href="/connect" className="btn btn-sm bg-tangerine text-white">📍 Meet now</Link>
             ) : (
               <button type="button" className="btn btn-sm bg-tangerine text-white" onClick={() => { setOpen(alert.card); setAlert(null); }}>
                 See their card
