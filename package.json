@@ -17,6 +17,7 @@
     "es:setup": "tsx scripts/es-setup.ts",
     "seed": "tsx scripts/seed.ts",
     "replay": "tsx scripts/replay-room.ts",
+    "demo:traffic": "tsx scripts/demo-traffic.ts",
     "sync:sources": "tsx scripts/sync-sources.ts"
   },
   "devDependencies": {
