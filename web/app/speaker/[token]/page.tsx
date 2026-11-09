@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import type { SpeakerReport } from "@sidecar/shared";
 import { AutoRefresh } from "@/components/AutoRefresh";
 import { Logo } from "@/components/Logo";
+import { LostNowBanner } from "@/components/LostNowBanner";
 import { SpeakerReportView } from "@/components/SpeakerReportView";
 import { buildReport, talkByToken } from "@/lib/speaker";
 import { cachedSummary } from "@/lib/speaker-summary";
@@ -29,6 +30,7 @@ export default async function SpeakerPage({ params }: { params: Promise<{ token:
         <Logo />
         <span className="chip bg-white">Speaker</span>
       </div>
+      <LostNowBanner token={token} />
       <SpeakerReportView report={full} />
     </main>
   );

@@ -22,13 +22,17 @@ export async function listFolders(uid: string): Promise<Folder[]> {
     await es().bulk({
       refresh: "wait_for",
       operations: DEFAULT_FOLDERS.flatMap((name, i) => {
-        const folder: Folder = { id: randomUUID(), uid, name, created_at: new Date(now + i).toISOString() };
+        // Stable ids: if two first visits race, the second write overwrites
+        // instead of creating a duplicate set of starter folders.
+        const folder: Folder = { id: `${uid}:starter:${name.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`, uid, name, created_at: new Date(now + i).toISOString() };
         return [{ index: { _index: INDEX.folders, _id: folder.id } }, folder];
       }),
     });
     hits = (await search()).hits.hits;
   }
-  return hits.map((h) => h._source!).filter(Boolean);
+  // Hide duplicates by name (from before starter ids were stable).
+  const seen = new Set<string>();
+  return hits.map((h) => h._source!).filter((f) => f && !seen.has(f.name.toLowerCase()) && seen.add(f.name.toLowerCase()));
 }
 
 export async function createFolder(uid: string, rawName: unknown): Promise<Folder | { error: string }> {

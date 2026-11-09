@@ -23,10 +23,21 @@ interface DemoAttendee {
   questions: [string, string, string, string, string][];
 }
 
+/** Elastic Cloud trial embeddings are rate limited (429): back off and retry. */
+async function bulkWithRetry(operations: object[]) {
+  for (let attempt = 1; ; attempt++) {
+    const res = await es.bulk({ operations, refresh: true });
+    const limited = res.errors && res.items.some((i) => JSON.stringify(i.index?.error ?? "").includes("429"));
+    if (!limited || attempt >= 6) return res;
+    console.log(`embedding rate limit, retrying in ${attempt * 10}s…`);
+    await new Promise((r) => setTimeout(r, attempt * 10_000));
+  }
+}
+
 async function main() {
   const people: DemoAttendee[] = JSON.parse(readFileSync("data/attendees.json", "utf8"));
   const talks = await es.mget<{ id: string; title: string; start: string; end: string; room_id: string }>({
-    index: "sidecar-talks", ids: [...new Set(people.flatMap((p) => p.talks))],
+    index: "sidecar-talks", ids: [...new Set([...people.flatMap((p) => p.talks), "sidecar-live-pitch"])],
   });
   const byId = new Map(talks.docs.flatMap((d) => ("_source" in d && d._source ? [[d._source.id, d._source] as const] : [])));
   const now = new Date().toISOString();
@@ -49,7 +60,47 @@ async function main() {
       });
     });
   }
-  const res = await es.bulk({ operations: ops, refresh: true });
+  // A labelled demo crowd for the live pitch, so the speaker report and the
+  // graph aren't empty: a few questions per theme (3+ people, the report's
+  // privacy floor) and an "I'm lost" spike around minute 2. The presenter's
+  // own live question is the real one.
+  const pitchQuestions: [string, string, string, string][] = [
+    ["demo-maya", "How do we keep error traces if we sample most traces away?", "tracing cost", "keeping error traces while sampling"],
+    ["demo-jonas", "How do you sample in the collector instead of the SDK?", "tracing cost", "moving sampling decisions to the collector"],
+    ["demo-ravi", "How do I cut our tracing bill without losing failed requests?", "tracing cost", "reducing tracing costs without losing failed requests"],
+    ["demo-ines", "How do I keep slow requests when we drop most traces?", "tracing cost", "keeping slow requests while sampling"],
+    ["demo-lena", "How do I stop collectors running out of memory?", "collector memory", "collector running out of memory"],
+    ["demo-ana", "How do I size collector memory for tail sampling?", "collector memory", "sizing collector memory for tail sampling"],
+    ["demo-tom", "How do I limit collector memory at peak traffic?", "collector memory", "limiting collector memory at peak"],
+  ];
+  pitchQuestions.forEach(([uid, text, topic, problem], i) => {
+    const id = `${uid}-pitch-q`;
+    ops.push({ index: { _index: "sidecar-questions", _id: id } }, { id, uid, talk_id: "sidecar-live-pitch", offset_s: 40 + i * 15, ts: now, text, type: "applied", topic, problem });
+  });
+  ["demo-maya", "demo-jonas", "demo-ravi", "demo-leo", "demo-kim", "demo-ines"].forEach((uid, i) => {
+    ops.push({ index: { _index: "sidecar-signals", _id: `${uid}-pitch-lost` } }, { uid_hash: `demo-${i}`, talk_id: "sidecar-live-pitch", offset_s: 120 + i * 4, ts: now, type: "lost" });
+    ops.push({ index: { _index: "sidecar-signals", _id: `${uid}-pitch-got` } }, { uid_hash: `demo-${i}`, talk_id: "sidecar-live-pitch", offset_s: 60 + i * 3, ts: now, type: "got_it" });
+  });
+
+  // The pitch's first two minutes (said before the room laptop started), so the
+  // speaker report can quote what was being said when the minute-2 "lost" taps came in.
+  const pitch = byId.get("sidecar-live-pitch");
+  if (pitch) {
+    const intro: [number, string][] = [
+      [65, "Most teams sample traces at the start of a request, which is called head sampling."],
+      [90, "Head sampling decides before the request runs, so it can't know the request will fail."],
+      [118, "Tail sampling buffers every span of a trace in the collector and only decides once the trace is complete."],
+      [140, "So the decision policy can say: keep all errors, keep anything over two seconds, and keep one percent of the rest."],
+    ];
+    for (const [offset_s, text] of intro) {
+      const id = `sidecar-live-pitch-seed-${offset_s}`;
+      ops.push({ index: { _index: "sidecar-transcripts", _id: id } }, {
+        id, talk_id: pitch.id, room_id: pitch.room_id, offset_s, ts: new Date(Date.parse(pitch.start) + offset_s * 1000).toISOString(), text,
+      });
+    }
+  }
+
+  const res = await bulkWithRetry(ops);
   if (res.errors) throw new Error(JSON.stringify(res.items.find((i) => i.index?.error)?.index?.error));
 
   for (const p of people) await rebuildPerson(es, p.id, { demo: true });

@@ -106,10 +106,6 @@ async function clusters(talkId: string): Promise<QuestionCluster[]> {
           terms: { field: "topic", size: 10, min_doc_count: 1 },
           aggs: { people: { cardinality: { field: "uid" } } },
         },
-        themes: {
-          significant_text: { field: "text", size: 8, filter_duplicate_text: true },
-          aggs: { people: { cardinality: { field: "uid" } } },
-        },
       },
     });
     const aggs = res.aggregations as unknown as ClusterAgg;
@@ -118,11 +114,26 @@ async function clusters(talkId: string): Promise<QuestionCluster[]> {
       questions: b.doc_count,
       people: b.people?.value ?? 0,
     }));
-    const found = classified.length ? classified : (aggs.themes?.buckets ?? []).map((b) => ({
-      topic: b.key,
-      questions: b.doc_count,
-      people: b.people?.value ?? 0,
-    }));
+    // Fallback before the classifier has run: significant_text can't take
+    // sub-aggregations (Elasticsearch rejects the whole query), so count the
+    // distinct askers per theme with a second query.
+    let found = classified;
+    if (!found.length) {
+      const sig = await es().search({
+        index: INDEX.questions, size: 0,
+        query: { bool: { filter: [{ term: { talk_id: talkId } }] } },
+        aggs: { themes: { significant_text: { field: "text", size: 8, filter_duplicate_text: true } } },
+      });
+      const themes = ((sig.aggregations as unknown as ClusterAgg).themes?.buckets ?? []).map((b) => b.key);
+      found = await Promise.all(themes.map(async (topic) => {
+        const r = await es().search({
+          index: INDEX.questions, size: 0,
+          query: { bool: { filter: [{ term: { talk_id: talkId } }, { match: { text: topic } }] } },
+          aggs: { people: { cardinality: { field: "uid" } } },
+        });
+        return { topic, questions: (r.hits.total as { value: number }).value, people: (r.aggregations as { people: { value: number } }).people.value };
+      }));
+    }
     return found.filter((c) => c.people >= MIN_PEOPLE).sort((a, b) => b.questions - a.questions);
   } catch {
     // A missing field or an unsupported sub-aggregation must not take the whole

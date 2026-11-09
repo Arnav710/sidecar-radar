@@ -132,24 +132,25 @@ export function OnboardingFlow({ initial, isEdit, conference, topics }: { initia
   }
 
   return (
-    <div className="mx-auto grid min-h-dvh max-w-6xl lg:grid-cols-[22rem_1fr]">
-      <aside className="flex flex-col justify-between px-6 pb-6 pt-8 lg:px-10 lg:py-12">
+    <div className="grid min-h-dvh bg-paper lg:grid-cols-[26rem_1fr]">
+      {/* Same dark panel as the landing page, so "Get started" doesn't flash to white. */}
+      <aside className="flex flex-col justify-between bg-ink px-6 pb-6 pt-8 text-paper [background-image:radial-gradient(rgba(255,246,230,0.07)_1px,transparent_1px)] [background-size:22px_22px] lg:sticky lg:top-0 lg:h-dvh lg:px-10 lg:py-12">
         <div>
-          <Logo />
+          <Logo dark />
           <h1 className="mt-10 text-3xl leading-tight sm:text-4xl">{isEdit ? "Your profile" : "Make the conference yours"}</h1>
-          <p className="mt-4 text-[0.9375rem] leading-relaxed text-ink-soft">
+          <p className="mt-4 text-[0.9375rem] leading-relaxed text-paper/75">
             A minute of details lets Sidecar plan your day, answer questions in your terms, and introduce you to people stuck on the same thing.
           </p>
-          <ul className="mt-6 space-y-3 text-sm text-ink-2">
+          <ul className="mt-6 space-y-3 text-sm text-paper/85">
             {["A schedule picked for you, with the reason for every pick", "Answers pitched at your level", "Open slots kept free for meeting people"].map((t) => (
-              <li key={t} className="flex gap-2.5"><IconCheck className="mt-0.5 shrink-0 text-accent" size={16} />{t}</li>
+              <li key={t} className="flex gap-2.5"><IconCheck className="mt-0.5 shrink-0 text-lime" size={16} />{t}</li>
             ))}
           </ul>
         </div>
-        <p className="mt-10 hidden text-xs text-ink-soft lg:block">Your details are only used to plan your day. They are never shown to other attendees by name.</p>
+        <p className="mt-10 hidden text-xs text-paper/50 lg:block">Your details are only used to plan your day. They are never shown to other attendees by name.</p>
       </aside>
 
-      <form onSubmit={submit} className="space-y-5 px-4 pb-16 sm:px-8 lg:py-12">
+      <form onSubmit={submit} className="mx-auto w-full max-w-3xl space-y-5 px-4 pb-16 pt-6 sm:px-8 lg:py-12">
         {!isEdit && (
           <p className="rounded-xl border border-line bg-accent-soft px-4 py-2.5 text-sm text-accent-ink">
             Sample details are filled in so you can try this quickly. Change anything you like.

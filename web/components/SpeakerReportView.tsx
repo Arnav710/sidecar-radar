@@ -59,7 +59,8 @@ export function SpeakerReportView({ report }: { report: SpeakerReport }) {
           <h2 className="font-display text-2xl font-extrabold">What your room is telling you</h2>
           {report.summary.split(/\n{2,}/).map((para, i) => (
             <p key={i} className="whitespace-pre-line">
-              {para}
+              {/* The model writes **bold** headings; render them as bold, not asterisks. */}
+              {para.split(/\*\*(.+?)\*\*/g).map((part, j) => (j % 2 ? <b key={j} className="font-display">{part}</b> : part))}
             </p>
           ))}
         </section>

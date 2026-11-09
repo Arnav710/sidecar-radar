@@ -56,13 +56,28 @@ function toCard(me: PersonDoc, c: Candidate, doc: MatchDoc | undefined, titles: 
 
 /** My blind cards, best first, with each pair's current state. */
 export async function myCards(me: PersonDoc): Promise<BlindCard[]> {
-  const candidates = await candidatesFor(me);
+  // Demo attendees can fill the top list, so also ask for real people only and
+  // always include them (real matches drive the live pop-ups during a talk).
+  const [ranked, realOnly] = await Promise.all([candidatesFor(me), candidatesFor(me, [{ term: { demo: false } }], 5)]);
+  const candidates = [...ranked];
+  for (const c of realOnly) if (!candidates.some((x) => x.person.uid === c.person.uid)) candidates.push(c);
   // Someone who already wants to meet me should show up even if they fell out of my top list.
   const incoming = await es().search<MatchDoc>({
     index: INDEX.matches, size: 10,
     query: { bool: { filter: [{ bool: { should: [{ term: { uid_a: me.uid } }, { term: { uid_b: me.uid } }] } }] } },
   });
   const docs = new Map(incoming.hits.hits.map((h) => [h._id!, h._source!]));
+  // Pairs that already have a "want" or are mutual always show, even if that
+  // person isn't in today's top candidates.
+  const shown = new Set(candidates.map((c) => c.person.uid));
+  for (const d of docs.values()) {
+    const otherUid = d.uid_a === me.uid ? d.uid_b : d.uid_a;
+    if (shown.has(otherUid) || d.wants.length === 0) continue;
+    const other = await getPerson(otherUid);
+    if (!other) continue;
+    candidates.push({ person: other, score: d.score, sameProblem: d.kind === "same_problem", sharedTalks: d.shared_talks, sharedProblem: d.shared_problem });
+    shown.add(otherUid);
+  }
   const titles = await talkTitles(candidates.flatMap((c) => c.sharedTalks));
   const cards = candidates.map((c) => toCard(me, c, docs.get(pairId(me.uid, c.person.uid)), titles));
   // Mutual first, then "they want to meet you", then by score.

@@ -119,20 +119,31 @@ export function planDay(input: PlanInput): Plan {
   const generated_at = now.toISOString();
   if (all.length === 0) return { blocks: [], pool: [], generated_at };
 
-  // Plan one day: the venue-local day of the earliest thing still to come.
-  const day = venueDay(Math.min(...all.map((c) => c.start)));
-  const candidates = all.filter((c) => venueDay(c.start) === day);
-  candidates.forEach((c) => scoreCandidate(c, input.profile));
+  // Plan each of the next few venue-local days (the whole conference), one day at a time.
+  all.forEach((c) => scoreCandidate(c, input.profile));
+  const days = [...new Set(all.map((c) => venueDay(c.start)))].sort().slice(0, MAX_DAYS);
+  const blocks: PlanBlock[] = [];
+  const left = new Set(all);
+  for (const day of days) blocks.push(...planOneDay(all.filter((c) => venueDay(c.start) === day), input.profile, left));
+  const byScore = (a: Candidate, b: Candidate) => b.score - a.score;
+  const pool = [...left].sort(byScore).slice(0, 30).map((c) => toAlternative(c));
+  return { blocks, pool, generated_at };
+}
+
+const MAX_DAYS = 3;
+
+/** Greedy plan for one day's candidates; removes the chosen ones from `left`. */
+function planOneDay(candidates: Candidate[], profile: PlanInput["profile"], left: Set<Candidate>): PlanBlock[] {
 
   // Greedy pick, best first. Each pick lowers the score of anything sharing its
   // topics (variety) and rules out anything that overlaps it in time.
-  const cap = PICKS_BY_PACE[input.profile.pace];
+  const cap = PICKS_BY_PACE[profile.pace];
   const chosen: Candidate[] = [];
-  const left = new Set(candidates);
+  const today = new Set(candidates);
   while (chosen.length < cap) {
     let best: Candidate | undefined;
     let bestScore = -Infinity;
-    for (const c of left) {
+    for (const c of today) {
       if (chosen.some((p) => overlaps(p, c))) continue;
       const repeats = chosen.filter((p) => p.topics.some((t) => c.topics.includes(t))).length;
       const adjusted = c.score - repeats * VARIETY_PENALTY;
@@ -140,6 +151,7 @@ export function planDay(input: PlanInput): Plan {
     }
     if (!best || bestScore <= 0) break; // nothing left that is worth a slot
     chosen.push(best);
+    today.delete(best);
     left.delete(best);
   }
   chosen.sort((a, b) => a.start - b.start);
@@ -147,7 +159,7 @@ export function planDay(input: PlanInput): Plan {
   const byScore = (a: Candidate, b: Candidate) => b.score - a.score;
   const blocks: PlanBlock[] = [];
   chosen.forEach((c, i) => {
-    const alternatives = [...left].filter((o) => overlaps(o, c)).sort(byScore).slice(0, 2).map((o) => toAlternative(o, o.kind === "talk"));
+    const alternatives = [...today].filter((o) => overlaps(o, c)).sort(byScore).slice(0, 2).map((o) => toAlternative(o, o.kind === "talk"));
     blocks.push({
       id: c.key, kind: c.kind, start: new Date(c.start).toISOString(), end: new Date(c.end).toISOString(), title: c.title, ref: c.ref,
       room_id: c.room_id, location: c.location, url: c.url, why: whyLine(c), ...(alternatives.length > 0 ? { alternatives } : {}),
@@ -165,6 +177,5 @@ export function planDay(input: PlanInput): Plan {
     }
   });
 
-  const pool = [...left].sort(byScore).slice(0, 30).map((c) => toAlternative(c));
-  return { blocks, pool, generated_at };
+  return blocks;
 }

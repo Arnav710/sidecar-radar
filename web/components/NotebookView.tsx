@@ -14,6 +14,7 @@ export function NotebookView({ talkTitles }: { talkTitles: Record<string, string
   const [filter, setFilter] = useState<Filter>({ kind: "all" });
   const [loaded, setLoaded] = useState(false);
   const [newFolder, setNewFolder] = useState("");
+  const [showEmpty, setShowEmpty] = useState(false);
   const [adding, setAdding] = useState(false);
   const [error, setError] = useState("");
 
@@ -117,15 +118,23 @@ export function NotebookView({ talkTitles }: { talkTitles: Record<string, string
 
   return (
     <div className="grid gap-6 md:grid-cols-[14rem_1fr]">
-      <aside aria-label="Folders">
+      <aside aria-label="Folders" className="print:hidden">
         <ul className="space-y-0.5">
           {items.map((i) => pick(i.label, i.f, i.icon))}
         </ul>
         <p className="eyebrow mb-1 mt-5 px-3">Folders</p>
         <ul className="space-y-0.5">
-          {folders.map((f) => pick(f.name, { kind: "folder", id: f.id }, <IconFolder size={16} />, () => removeFolder(f)))}
-          {pick("Unfiled", { kind: "unfiled" }, <IconFolder size={16} className="opacity-50" />)}
+          {/* Only folders with notes (or the one you're in); empty ones stay tucked away. */}
+          {folders
+            .filter((f) => showEmpty || count({ kind: "folder", id: f.id }) > 0 || same(filter, { kind: "folder", id: f.id }))
+            .map((f) => pick(f.name, { kind: "folder", id: f.id }, <IconFolder size={16} />, () => removeFolder(f)))}
+          {(showEmpty || count({ kind: "unfiled" }) > 0) && pick("Unfiled", { kind: "unfiled" }, <IconFolder size={16} className="opacity-50" />)}
         </ul>
+        {folders.some((f) => count({ kind: "folder", id: f.id }) === 0) && (
+          <button type="button" className="btn btn-ghost btn-sm mt-1 text-ink-soft" onClick={() => setShowEmpty((v) => !v)}>
+            {showEmpty ? "Hide empty folders" : `Show ${folders.filter((f) => count({ kind: "folder", id: f.id }) === 0).length} empty folders`}
+          </button>
+        )}
         {adding ? (
           <form onSubmit={addFolder} className="mt-3 px-1">
             <label htmlFor="new-folder" className="sr-only">Folder name</label>
@@ -144,7 +153,10 @@ export function NotebookView({ talkTitles }: { talkTitles: Record<string, string
       <section aria-label="Notes">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <p className="text-sm text-ink-soft">{visible.length} {filter.kind === "saved" ? "saved talk" : "note"}{visible.length === 1 ? "" : "s"}</p>
-          <a href="/api/notebook/export" className="btn btn-sm"><IconDownload size={15} /> Export as Markdown</a>
+          <div className="flex gap-2 print:hidden">
+            <a href="/api/notebook/export" className="btn btn-sm"><IconDownload size={15} /> Markdown</a>
+            <button type="button" className="btn btn-sm btn-primary" onClick={() => window.print()}><IconDownload size={15} /> Export PDF</button>
+          </div>
         </div>
 
         {groups.length === 0 && (
@@ -180,7 +192,19 @@ export function NotebookView({ talkTitles }: { talkTitles: Record<string, string
                       <button type="button" className="btn btn-ghost btn-icon ml-auto -my-1" aria-label="Delete" onClick={() => remove(n)}><IconTrash size={14} /></button>
                     </div>
                     {n.quote && <p className="mt-2 border-l-2 border-line-strong pl-3 text-ink-soft">{n.quote}</p>}
-                    {n.text && <p className="mt-2 whitespace-pre-wrap leading-relaxed">{n.text}</p>}
+                    {n.text && (
+                      <div className="mt-2 space-y-1.5 leading-relaxed">
+                        {n.text.split("\n").filter((l) => l.trim()).map((line, i) =>
+                          /^(Q|A):/.test(line) ? (
+                            <p key={i}><span className={`mr-1.5 inline-block rounded px-1.5 text-xs font-bold ${line.startsWith("Q") ? "bg-accent-soft text-accent-ink" : "bg-paper-2 text-ink-2"}`}>{line[0]}</span>{line.slice(2).trim()}</p>
+                          ) : line.trim().startsWith("- ") ? (
+                            <p key={i} className="pl-4 -indent-3">• {line.trim().slice(2)}</p>
+                          ) : (
+                            <p key={i}>{line}</p>
+                          ),
+                        )}
+                      </div>
+                    )}
                   </li>
                 ))}
               </ul>

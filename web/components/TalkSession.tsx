@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ApplyResponse, AskResponse, CaptionsResponse, CatchUpResponse, Citation, ExplainResponse, Folder, NextStop, Note, TranscriptLine } from "@sidecar/shared";
 import { classifyChat, FOLDER, formatOffset, offsetSince } from "@sidecar/shared";
 import { roomLabel, timeLabel } from "./format";
+import { LiveMatchAlerts } from "./LiveMatchAlerts";
 import { IconArrowLeft, IconBookmark, IconCheck, IconMic, IconPencil, IconSend, IconSparkle, IconStar, IconTrash, IconX } from "./Icons";
 
 export interface SessionTalk {
@@ -381,6 +382,7 @@ export function TalkSession({ talk, conference, serverNow }: { talk: SessionTalk
                     {ready ? "Ask a question or catch up on what you missed. Answers come from what the speaker actually said." : "Catch-up, questions and answers unlock when the session starts."}
                   </p>
                 )}
+                <LiveMatchAlerts showSuggestions={cards.some((c) => c.kind === "ask" && !!c.body)} />
                 {cards.map((c) => <AnswerCard key={c.id} card={c} onJump={jumpTo} onSave={() => saveToNotebook([c.kind === "ask" ? `Q: ${c.title}` : c.title, c.body].filter(Boolean).join("\n"), c.kind === "ask" ? FOLDER.questions : FOLDER.catchUps, c.id)} />)}
               </div>
 
@@ -489,19 +491,42 @@ function AnswerCard({ card: c, onJump, onSave }: { card: Card; onJump: (c: Citat
       ) : (
         <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed">{c.body}</p>
       ))}
-      {c.citations && c.citations.length > 0 && (
-        <p className="mt-2.5 flex flex-wrap gap-1.5">
-          {c.citations.slice(0, 4).map((cit, i) => (
-            <button key={i} type="button" className="pill hover:bg-accent-soft" disabled={!cit.same_talk} onClick={() => onJump(cit)} title={cit.same_talk ? "Jump to this moment" : cit.talk_title}>
-              {cit.same_talk ? formatOffset(cit.offset_s) : cit.talk_title.slice(0, 22)}
+      {c.citations && c.citations.some((cit) => cit.same_talk) && (
+        <p className="mt-2.5 flex flex-wrap items-center gap-1.5">
+          <span className="text-xs text-ink-soft">Said in this talk at</span>
+          {c.citations.filter((cit) => cit.same_talk).slice(0, 3).map((cit, i) => (
+            <button key={i} type="button" className="pill hover:bg-accent-soft" onClick={() => onJump(cit)} title="Jump to this moment">
+              ▶ {formatOffset(cit.offset_s)}
             </button>
           ))}
         </p>
       )}
+      {/* Another session at this KubeCon already covered it (from its live transcript). */}
+      {c.citations && c.citations.some((cit) => !cit.same_talk) && (
+        <div className="mt-3 rounded-xl border-2 border-ink bg-lilac/40 p-3">
+          <p className="text-sm font-bold">📼 Already covered earlier today</p>
+          <ul className="mt-1.5 space-y-2">
+            {c.citations.filter((cit) => !cit.same_talk).slice(0, 1).map((cit, i) => (
+              <li key={i}>
+                <Link className="text-base font-semibold leading-snug hover:underline" href={`/talk/${cit.talk_id}`}>{cit.talk_title}</Link>
+                <p className="text-sm text-ink-soft">{roomLabel(cit.room_id)} · said at minute {formatOffset(cit.offset_s)}</p>
+                <p className="mt-1 rounded-lg bg-white/70 px-2 py-1 text-sm italic">&ldquo;{cit.text}&rdquo;</p>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
       {c.nextStops && c.nextStops.length > 0 && (
-        <div className="mt-3 rounded-lg bg-paper p-2.5 text-sm">
-          <p className="eyebrow">Where to go next</p>
-          <ul className="mt-1 space-y-1">{c.nextStops.map((s) => <li key={s.talk_id}><Link className="font-medium hover:underline" href={`/talk/${s.talk_id}`}>{s.title}</Link> <span className="text-ink-soft">· {timeLabel(s.start)}</span></li>)}</ul>
+        <div className="mt-3 rounded-xl border-2 border-ink bg-sky/40 p-3">
+          <p className="text-sm font-bold">⏭️ Go deeper next</p>
+          <ul className="mt-1.5 space-y-2">
+            {c.nextStops.slice(0, 1).map((s) => (
+              <li key={s.talk_id}>
+                <Link className="text-base font-semibold leading-snug hover:underline" href={`/talk/${s.talk_id}`}>{s.title}</Link>
+                <p className="text-sm text-ink-soft">{new Date(s.start).toLocaleDateString("en-US", { weekday: "long", timeZone: "America/Denver" })} {timeLabel(s.start)} · {roomLabel(s.room_id)}</p>
+              </li>
+            ))}
+          </ul>
         </div>
       )}
       {c.saved ? (

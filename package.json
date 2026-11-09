@@ -15,10 +15,11 @@
     "typecheck": "npm run typecheck -w web && npm run typecheck -w worker",
     "test": "npm run test -w shared",
     "es:setup": "tsx scripts/es-setup.ts",
-    "seed": "tsx scripts/seed.ts && tsx scripts/seed-people.ts",
+    "seed": "tsx scripts/seed.ts && tsx scripts/seed-venue.ts && tsx scripts/seed-people.ts",
     "replay": "tsx scripts/replay-room.ts",
     "demo:traffic": "tsx scripts/demo-traffic.ts",
-    "sync:sources": "tsx scripts/sync-sources.ts"
+    "sync:sources": "tsx scripts/sync-sources.ts",
+    "reset-live": "tsx scripts/reset-live.ts"
   },
   "devDependencies": {
     "tsx": "4.19.4",

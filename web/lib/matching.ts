@@ -1,5 +1,5 @@
 import type { PersonDoc } from "@sidecar/shared/people";
-import { es, INDEX, SEMANTIC } from "./es";
+import { es, INDEX, isInferenceLimit, SEMANTIC } from "./es";
 
 // Matching people. The plan's score is
 //   0.6 × question/problem similarity + 0.3 × schedule overlap (rarity-weighted)
@@ -12,18 +12,18 @@ export const WEIGHTS = { problems: 0.6, schedule: 0.3, working_on: 0.1 } as cons
 const MIN_SCORE = 0.35;
 
 /** Meaning-based query on a text field (keyword match when semantic search is off). */
-function byMeaning(field: string, text: string) {
-  return SEMANTIC ? { semantic: { field: `${field}_semantic`, query: text } } : { match: { [field]: text } };
+function byMeaning(field: string, text: string, semantic = SEMANTIC) {
+  return semantic ? { semantic: { field: `${field}_semantic`, query: text } } : { match: { [field]: text } };
 }
 
 type Sub = { field: keyof typeof WEIGHTS; query: object };
 
 /** The three signals we have for this person (skipping empty ones). */
-function signals(me: PersonDoc): Sub[] {
+function signals(me: PersonDoc, semantic = SEMANTIC): Sub[] {
   const subs: Sub[] = [];
-  if (me.problems) subs.push({ field: "problems", query: byMeaning("problems", me.problems) });
+  if (me.problems) subs.push({ field: "problems", query: byMeaning("problems", me.problems, semantic) });
   if (me.schedule) subs.push({ field: "schedule", query: { match: { schedule: me.schedule } } });
-  if (me.working_on) subs.push({ field: "working_on", query: byMeaning("working_on", me.working_on) });
+  if (me.working_on) subs.push({ field: "working_on", query: byMeaning("working_on", me.working_on, semantic) });
   return subs;
 }
 
@@ -34,8 +34,8 @@ const filters = (me: PersonDoc, extra: object[] = []) => [
 ];
 
 /** The linear retriever for "who should `me` meet", restricted by `extra` filters. */
-export function matchRetriever(me: PersonDoc, extra: object[] = []) {
-  const subs = signals(me);
+export function matchRetriever(me: PersonDoc, extra: object[] = [], semantic = SEMANTIC) {
+  const subs = signals(me, semantic);
   if (subs.length === 0) return null;
   return {
     linear: {
@@ -64,22 +64,27 @@ const PERSON_SOURCE = ["uid", "display_name", "demo", "role", "years", "company_
  * Ranked candidates for `me`: one linear-retriever search, plus a problems-only
  * search to label each edge "same problem" vs "same interests".
  */
-export async function candidatesFor(me: PersonDoc, extra: object[] = [], size = 8): Promise<Candidate[]> {
-  const retriever = matchRetriever(me, extra);
+export async function candidatesFor(me: PersonDoc, extra: object[] = [], size = 8, semantic = SEMANTIC): Promise<Candidate[]> {
+  const retriever = matchRetriever(me, extra, semantic);
   if (!retriever) return [];
   const searches: object[] = [
     { index: INDEX.people },
     { size, _source: PERSON_SOURCE, retriever },
   ];
   if (me.problems) {
-    searches.push({ index: INDEX.people }, { size, _source: ["uid"], query: { bool: { must: byMeaning("problems", me.problems), filter: filters(me, extra) } } });
+    searches.push({ index: INDEX.people }, { size, _source: ["uid"], query: { bool: { must: byMeaning("problems", me.problems, semantic), filter: filters(me, extra) } } });
   }
   const res = await es().msearch<PersonDoc>({ searches: searches as never });
-  const [ranked, problemHits] = res.responses as { hits?: { hits: { _score: number; _source: PersonDoc }[] } }[];
-  // "Same problem" = among the closest few by problem alone, within 10% of the best.
+  const [ranked, problemHits] = res.responses as { hits?: { hits: { _score: number; _source: PersonDoc }[] }; error?: unknown }[];
+  // Embedding model rate limited (trial quota): match keyword-only instead of failing.
+  if (semantic && (ranked?.error || problemHits?.error) && isInferenceLimit({ meta: { body: ranked?.error ?? problemHits?.error } })) {
+    return candidatesFor(me, extra, size, false);
+  }
+  // "Same problem" = the closest 3 by problem alone, within 60% of the best. (10% was
+  // too tight: one near-identical match pushed out others with the same problem.)
   const pHits = problemHits?.hits?.hits ?? [];
   const best = pHits[0]?._score ?? 0;
-  const problemTop = new Set(pHits.filter((h) => h._score >= best * 0.9).slice(0, 3).map((h) => h._source.uid));
+  const problemTop = new Set(pHits.filter((h) => h._score >= best * 0.6).slice(0, 3).map((h) => h._source.uid));
 
   return (ranked?.hits?.hits ?? [])
     .filter((h) => h._score >= MIN_SCORE)

@@ -33,6 +33,17 @@ const KEYS_FILE = ".room-keys.json";
 
 const minutes = (m: number) => new Date(Date.now() + m * 60_000);
 
+/** Elastic Cloud trial embeddings are rate limited (429): back off and retry. */
+async function bulkWithRetry(operations: object[]) {
+  for (let attempt = 1; ; attempt++) {
+    const res = await es.bulk({ operations, refresh: true });
+    const limited = res.errors && res.items.some((i) => JSON.stringify(i.index?.error ?? "").includes("429"));
+    if (!limited || attempt >= 6) return res;
+    console.log(`embedding rate limit, retrying in ${attempt * 10}s…`);
+    await new Promise((r) => setTimeout(r, attempt * 10_000));
+  }
+}
+
 async function main() {
   const seed: SeedTalk[] = JSON.parse(readFileSync("data/talks.json", "utf8"));
   const missing = seed.filter((t) => !t.accessibility).map((t) => t.id);
@@ -62,7 +73,7 @@ async function main() {
     );
   }
 
-  const res = await es.bulk({ operations: ops, refresh: true });
+  const res = await bulkWithRetry(ops);
   if (res.errors) {
     const first = res.items.find((i) => i.index?.error)?.index?.error;
     throw new Error(`bulk failed: ${JSON.stringify(first)}`);
