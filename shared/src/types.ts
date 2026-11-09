@@ -143,6 +143,8 @@ export interface SpeakerReport {
   summary?: string;
   summary_mode: "ai" | "none";
   min_people: number;
+}
+
 // ---- Attendee profile ----
 
 /** Why someone came to the conference. Drives how the schedule is ranked. */

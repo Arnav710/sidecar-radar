@@ -16,12 +16,14 @@ const pct = (x: number | null) => (x === null ? "—" : `${Math.round(x * 100)}%
 
 function SloCard({ title, what, s }: { title: string; what: string; s: LatencySummary }) {
   const tone = s.count === 0 ? "bg-white" : s.healthy ? "bg-lime" : "bg-tangerine text-white";
+  // Ids can't contain spaces, so slugify the title for aria-labelledby.
+  const headingId = `${title.toLowerCase().replace(/\s+/g, "-")}-h`;
   const verdict = s.count === 0 ? "No data yet" : s.healthy ? "Meeting SLO" : "Missing SLO";
   return (
-    <section className="sticker flex flex-col gap-4 p-6" aria-labelledby={`${title}-h`}>
+    <section className="sticker flex flex-col gap-4 p-6" aria-labelledby={headingId}>
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h2 id={`${title}-h`} className="font-display text-2xl font-extrabold">
+          <h2 id={headingId} className="font-display text-2xl font-extrabold">
             {title}
           </h2>
           <p className="text-sm text-ink-soft">{what}</p>
@@ -94,7 +96,7 @@ export default function StatusPage() {
           <span className="font-display text-3xl font-extrabold tabular-nums">{h.llmTokens.toLocaleString("en-US")}</span>
         </div>
         <div className="sticker flex flex-col gap-1 p-4">
-          <span className="font-mono text-xs uppercase tracking-wider text-ink-soft">Answers that fell back to quotes</span>
+          <span className="font-mono text-xs uppercase tracking-wider text-ink-soft">AI calls that failed</span>
           <span className="font-display text-3xl font-extrabold tabular-nums">{h.aiFallbacks}</span>
         </div>
       </section>

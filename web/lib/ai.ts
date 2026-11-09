@@ -26,6 +26,7 @@ export async function tryAi(fn: () => Promise<string>): Promise<string | null> {
   try {
     return (await fn()) || null;
   } catch (err) {
+    // Counts every failed AI call (answers, signal, summaries); the caller then falls back to quotes.
     recordHealth("aiFallbacks", 1);
     log("warn", "ai.failed_fallback_to_quote", { "error.type": (err as Error).name, "http.response.status_code": (err as { status?: number }).status ?? 0 });
     return null;
