@@ -1,0 +1,143 @@
+[
+  {
+    "id": "sidecar-live-pitch",
+    "title": "Sidecar: ask the talk anything (live pitch)",
+    "abstract": "The Sidecar team demos live captions, private questions answered from what the speaker just said, and introductions between people stuck on the same problem.",
+    "speaker": "Team Sidecar",
+    "room_id": "main",
+    "start_in_min": -1,
+    "duration_min": 30,
+    "level": "beginner",
+    "topics": [
+      "conferences",
+      "search",
+      "networking"
+    ],
+    "is_recorded": false,
+    "speaker_token": "spk-sidecar-pitch"
+  },
+  {
+    "id": "otel-at-scale",
+    "title": "OpenTelemetry at Scale: Sampling Without Losing the Interesting Traces",
+    "abstract": "We run 200 services and our tracing bill tripled. This talk walks through moving from head-based to tail-based sampling in the OpenTelemetry Collector, keeping every error and slow trace while dropping most healthy ones, plus how we sized collector memory so it stopped OOMing.",
+    "speaker": "Maya Okafor",
+    "room_id": "room-b",
+    "start_in_min": -3,
+    "duration_min": 40,
+    "level": "advanced",
+    "topics": [
+      "opentelemetry",
+      "tracing",
+      "cost",
+      "sampling"
+    ],
+    "is_recorded": true,
+    "speaker_token": "spk-otel-at-scale"
+  },
+  {
+    "id": "ebpf-security-101",
+    "title": "eBPF for Runtime Security, Explained From Zero",
+    "abstract": "What eBPF actually is, why every security vendor suddenly uses it, and how to read a simple program that detects a container spawning a shell. No kernel experience needed.",
+    "speaker": "Daniel Reyes",
+    "room_id": "room-a",
+    "start_in_min": -6,
+    "duration_min": 35,
+    "level": "beginner",
+    "topics": [
+      "ebpf",
+      "security",
+      "kernel"
+    ],
+    "is_recorded": true,
+    "speaker_token": "spk-ebpf-101"
+  },
+  {
+    "id": "platform-golden-paths",
+    "title": "Golden Paths That Developers Actually Take",
+    "abstract": "Our internal developer platform had a beautiful template nobody used. We share the interviews, the three changes that tripled adoption, and the metrics we now track for platform health.",
+    "speaker": "Priya Natarajan",
+    "room_id": "room-c",
+    "start_in_min": 25,
+    "duration_min": 35,
+    "level": "intermediate",
+    "topics": [
+      "platform engineering",
+      "developer experience",
+      "backstage"
+    ],
+    "is_recorded": true,
+    "speaker_token": "spk-golden-paths"
+  },
+  {
+    "id": "llm-latency-k8s",
+    "title": "Cutting LLM Inference Latency on Kubernetes by 60%",
+    "abstract": "Batching, KV-cache aware routing and GPU bin-packing for self-hosted models. Real numbers from a production chat assistant, including the autoscaling mistake that cost us a weekend.",
+    "speaker": "Sam Lee",
+    "room_id": "room-d",
+    "start_in_min": 40,
+    "duration_min": 40,
+    "level": "advanced",
+    "topics": [
+      "llm",
+      "inference",
+      "gpu",
+      "autoscaling",
+      "latency"
+    ],
+    "is_recorded": true,
+    "speaker_token": "spk-llm-latency"
+  },
+  {
+    "id": "tail-sampling-deep-dive",
+    "title": "Tail Sampling Deep Dive: Policies, Memory and Load Balancing",
+    "abstract": "A hands-on look at the tail sampling processor: writing policies for errors, latency and rare endpoints, why you need trace-ID aware load balancing in front of your collectors, and how to keep memory bounded.",
+    "speaker": "Jonas Weber",
+    "room_id": "room-b",
+    "start_in_min": 75,
+    "duration_min": 35,
+    "level": "advanced",
+    "topics": [
+      "opentelemetry",
+      "sampling",
+      "tracing",
+      "collector"
+    ],
+    "is_recorded": false,
+    "speaker_token": "spk-tail-deep-dive"
+  },
+  {
+    "id": "gitops-rollbacks",
+    "title": "GitOps Rollbacks Under Pressure",
+    "abstract": "What happens when a bad release ships at 2am and your source of truth is git. Argo CD rollbacks, progressive delivery with canaries, and the runbook that saved our on-call team.",
+    "speaker": "Lena Fischer",
+    "room_id": "room-a",
+    "start_in_min": 95,
+    "duration_min": 30,
+    "level": "intermediate",
+    "topics": [
+      "gitops",
+      "argo cd",
+      "canary",
+      "incident response"
+    ],
+    "is_recorded": true,
+    "speaker_token": "spk-gitops-rollbacks"
+  },
+  {
+    "id": "first-kubecon",
+    "title": "Your First Year in Cloud Native: A Map for Newcomers",
+    "abstract": "Overwhelmed by the landscape? A friendly tour of the ten projects you'll hear about most, what problem each one solves, and where newcomers can contribute this month.",
+    "speaker": "Aisha Bello",
+    "room_id": "main",
+    "start_in_min": 130,
+    "duration_min": 30,
+    "level": "beginner",
+    "topics": [
+      "community",
+      "kubernetes",
+      "getting started"
+    ],
+    "is_recorded": true,
+    "speaker_token": "spk-first-year"
+  }
+]
