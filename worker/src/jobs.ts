@@ -26,7 +26,10 @@ interface Classified { type: QuestionType; topic: string; problem: string }
  * match people; applied/experience questions do, via the underlying problem.
  */
 async function classify(text: string): Promise<Classified> {
-  const fallback: Classified = { type: classifyHeuristic(text), topic: "", problem: text.slice(0, 160) };
+  // Never fall back to the raw question: `problem` is shown to other attendees on
+  // blind cards. Without a model we only know the type, so the problem stays empty
+  // (the person can still match on schedule and "working on").
+  const fallback: Classified = { type: classifyHeuristic(text), topic: "", problem: "" };
   if (!process.env.OPENAI_API_KEY) return fallback;
   ai ??= new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
   try {
@@ -53,7 +56,7 @@ async function classify(text: string): Promise<Classified> {
       m().llmTokens.add((usage?.prompt_tokens ?? 0) + (usage?.completion_tokens ?? 0), { "gen_ai.request.model": MODEL });
       const parsed = JSON.parse(res.choices[0]?.message?.content ?? "{}") as Partial<Classified>;
       const type: QuestionType = parsed.type === "definition" || parsed.type === "experience" ? parsed.type : "applied";
-      return { type, topic: String(parsed.topic ?? "").toLowerCase().slice(0, 40), problem: String(parsed.problem ?? fallback.problem).slice(0, 160) };
+      return { type, topic: String(parsed.topic ?? "").toLowerCase().slice(0, 40), problem: String(parsed.problem ?? "").slice(0, 160) };
     });
   } catch (err) {
     log("warn", "classify.fallback_heuristic", { "error.type": (err as Error).name });
