@@ -94,21 +94,47 @@ export async function wantToMeet(me: PersonDoc, matchId: string): Promise<BlindC
   const other = await getPerson(otherUid);
   if (!other) return null;
 
-  const existing = await es().get<MatchDoc>({ index: INDEX.matches, id: matchId }).then((r) => r._source).catch(() => undefined);
   const cand = (await candidatesFor(me, [{ term: { uid: otherUid } }], 1))[0];
   const sharedTalks = other.talk_ids.filter((t) => me.talk_ids.includes(t));
-  const doc: MatchDoc = existing ?? {
-    uid_a: a, uid_b: b,
-    kind: cand?.sameProblem ? "same_problem" : "same_interests",
-    score: cand?.score ?? 0,
-    shared_problem: cand?.sharedProblem || other.problem_list[0] || "",
-    shared_talks: sharedTalks,
-    wants: [], state: "open", updated_at: "",
-  };
-  if (!doc.wants.includes(me.uid)) doc.wants.push(me.uid);
 
-  if (doc.wants.includes(a) && doc.wants.includes(b) && doc.state !== "mutual") {
-    doc.state = "mutual";
+  // Optimistic concurrency: both people may tap at the same moment. Each write
+  // only succeeds if nobody changed the doc since we read it (if_seq_no /
+  // if_primary_term, or op_type "create" for a new pair); on a 409 we re-read
+  // and try again, so neither "want" is ever lost.
+  let doc: MatchDoc | undefined;
+  let becameMutual = false;
+  for (let attempt = 0; attempt < 5 && !doc; attempt++) {
+    const current = await es()
+      .get<MatchDoc>({ index: INDEX.matches, id: matchId })
+      .catch(() => undefined);
+    const next: MatchDoc = current?._source ?? {
+      uid_a: a, uid_b: b,
+      kind: cand?.sameProblem ? "same_problem" : "same_interests",
+      score: cand?.score ?? 0,
+      shared_problem: cand?.sharedProblem || other.problem_list[0] || "",
+      shared_talks: sharedTalks,
+      wants: [], state: "open", updated_at: "",
+    };
+    if (!next.wants.includes(me.uid)) next.wants.push(me.uid);
+    becameMutual = next.state !== "mutual" && next.wants.includes(a) && next.wants.includes(b);
+    if (becameMutual) next.state = "mutual";
+    next.updated_at = new Date().toISOString();
+    try {
+      await es().index({
+        index: INDEX.matches, id: matchId, document: next, refresh: "wait_for",
+        ...(current?._source
+          ? { if_seq_no: current._seq_no, if_primary_term: current._primary_term }
+          : { op_type: "create" as const }),
+      });
+      doc = next;
+    } catch (err) {
+      if ((err as { meta?: { statusCode?: number } }).meta?.statusCode !== 409) throw err;
+    }
+  }
+  if (!doc) throw new Error("match was busy, try again");
+
+  // Only the request that made the match mutual writes the conversation kit.
+  if (becameMutual) {
     const titles = await talkTitles(sharedTalks);
     const problem = doc.shared_problem || "the same talks";
     const fallback: ConversationKit = {
@@ -118,7 +144,6 @@ export async function wantToMeet(me: PersonDoc, matchId: string): Promise<BlindC
       you_bring: me.working_on || "your own experience",
       they_bring: other.working_on || "their own experience",
     };
-    // The kit is written from me's point of view; store it from uid_a's side.
     const raw = await tryAi(() =>
       conversationKit({
         problem,
@@ -128,10 +153,10 @@ export async function wantToMeet(me: PersonDoc, matchId: string): Promise<BlindC
       }),
     );
     const kit = parseKit(raw, fallback);
+    // Stored from uid_a's side; kitFor() flips it for uid_b.
     doc.kit = me.uid === a ? kit : { ...kit, you_bring: kit.they_bring, they_bring: kit.you_bring };
+    await es().update({ index: INDEX.matches, id: matchId, doc: { kit: doc.kit }, refresh: "wait_for" });
   }
-  doc.updated_at = new Date().toISOString();
-  await es().index({ index: INDEX.matches, id: matchId, document: doc, refresh: "wait_for" });
 
   const titles = await talkTitles(doc.shared_talks);
   return toCard(me, cand ?? { person: other, score: doc.score, sameProblem: doc.kind === "same_problem", sharedTalks: doc.shared_talks, sharedProblem: doc.shared_problem }, doc, titles);

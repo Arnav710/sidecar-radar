@@ -144,7 +144,9 @@ function MatchCard({ card, index, busy, onWant }: { card: BlindCard; index: numb
         </div>
       )}
       <div className="mt-4">
-        {card.state === "you_want" ? (
+        {card.state === "mutual" ? (
+          <p className="font-semibold">🎉 It&apos;s mutual! Writing your conversation kit…</p>
+        ) : card.state === "you_want" ? (
           <p className="font-semibold text-ink-soft">✅ You said yes. Waiting for them…</p>
         ) : (
           <button onClick={onWant} disabled={busy} className={`btn ${card.state === "they_want" ? "bg-tangerine text-white" : "bg-lime"}`}>
