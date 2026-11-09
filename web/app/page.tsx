@@ -71,7 +71,7 @@ export default async function Home() {
           {!connected && <span className="chip bg-bubble">not connected to Elasticsearch yet</span>}
         </div>
 
-        {connected && talks.length === 0 && <p className="text-ink-soft">No talks yet. Run <code>npm run seed</code>.</p>}
+        {connected && talks.length === 0 && <p className="text-ink-soft">No talks yet.</p>}
 
         <div className="grid gap-4 sm:grid-cols-2">
           {[...live, ...rest].map((t, i) => (
@@ -99,6 +99,14 @@ export default async function Home() {
               <p className="mt-1 text-sm text-ink-soft">
                 {t.speaker} · {t.level}
               </p>
+              {/* Accessibility metadata (conference rule 3). */}
+              {(t.accessibility?.captions || t.accessibility?.step_free || t.accessibility?.quiet_room_nearby) && (
+                <ul className="mt-3 flex flex-wrap gap-1.5" aria-label="Accessibility">
+                  {t.accessibility.captions && <li className="chip bg-white">CC live captions</li>}
+                  {t.accessibility.step_free && <li className="chip bg-white">♿ step-free</li>}
+                  {t.accessibility.quiet_room_nearby && <li className="chip bg-white">🤫 quiet room nearby</li>}
+                </ul>
+              )}
             </Link>
           ))}
         </div>
