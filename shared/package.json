@@ -23,6 +23,7 @@
   },
   "exports": {
     ".": "./src/index.ts",
-    "./otel": "./src/otel.ts"
+    "./otel": "./src/otel.ts",
+    "./people": "./src/people.ts"
   }
 }

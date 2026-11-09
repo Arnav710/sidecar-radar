@@ -11,6 +11,8 @@ export const INDEX = {
   profiles: "sidecar-profiles",
   events: "sidecar-events",
   schedules: "sidecar-schedules",
+  people: "sidecar-people",
+  matches: "sidecar-matches",
 } as const;
 
 /**

@@ -56,6 +56,21 @@ const indices: Record<string, Record<string, unknown>> = {
   "sidecar-schedules": {
     uid: kw, blocks: { type: "object", enabled: false }, updated_at: date,
   },
+  // One doc per attendee that matching ranks (rebuilt by the worker). `problems`
+  // holds only applied/experience problems (never definition questions);
+  // `schedule` is talk ids with a whitespace analyzer and no norms, so BM25's
+  // IDF weights rare talks higher: rarity weighting for free.
+  "sidecar-people": {
+    uid: kw, display_name: { type: "text" }, demo: { type: "boolean" }, role: kw, years: int, company_type: kw,
+    open_to_meet: { type: "boolean" }, ...searchable("working_on"), ...searchable("problems"),
+    problem_list: { type: "text", index: false }, topics: kw,
+    schedule: { type: "text", analyzer: "whitespace", norms: false }, talk_ids: kw, asked_in: kw, updated_at: date,
+  },
+  // One doc per pair (id = the two uids sorted). Blind until both want to meet.
+  "sidecar-matches": {
+    uid_a: kw, uid_b: kw, kind: kw, score: { type: "float" }, shared_problem: { type: "text", index: false },
+    shared_talks: kw, wants: kw, state: kw, kit: { type: "object", enabled: false }, updated_at: date,
+  },
   // Side events from Luma, Slack and X (not part of the main talk schedule).
   "sidecar-events": {
     id: kw, source: kw, title: { type: "text" }, ...searchable("description"),
