@@ -72,6 +72,18 @@ export async function saveProfile(uid: string, input: ProfileInput): Promise<Pro
   return profile;
 }
 
+/** A short description of the attendee for AI prompts, so answers fit them. Never logged. */
+export function whoIs(p: Profile | null): string {
+  if (!p) return "a conference attendee";
+  const levels = Object.entries(p.topic_levels).map(([t, l]) => `${t}: ${l}`).join(", ");
+  return [
+    p.role && `${p.role}, ${p.years} years of experience`,
+    p.working_on && `working on: ${p.working_on}`,
+    p.stuck_on && `stuck on: ${p.stuck_on}`,
+    levels && `levels: ${levels}`,
+  ].filter(Boolean).join("; ") || "a conference attendee";
+}
+
 /** One block of text describing what this person wants, used to search talks and events by meaning. */
 export function profileQueryText(p: Pick<Profile, "working_on" | "stuck_on" | "want_to_meet" | "topic_levels">): string {
   return [p.working_on, p.stuck_on, p.want_to_meet, Object.keys(p.topic_levels).join(" ")].filter(Boolean).join(". ");
