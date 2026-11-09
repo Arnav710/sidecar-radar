@@ -25,13 +25,24 @@ spec:
           env:
             - name: TEAM_NAME
               value: "sidecar"
+            - name: WORKER_URL
+              value: "http://worker"
+            - name: OTEL_SERVICE_NAME
+              value: "sidecar-web"
+          # ES_URL, ES_API_KEY, OPENAI_API_KEY, DASH0_AUTH_TOKEN and
+          # OTEL_EXPORTER_OTLP_ENDPOINT come from a Secret a human creates
+          # (never in git). optional: the app still starts before it exists.
+          envFrom:
+            - secretRef:
+                name: app-credentials
+                optional: true
           resources:
             requests:
-              cpu: 100m
-              memory: 128Mi
+              cpu: 200m
+              memory: 384Mi
             limits:
-              cpu: 500m
-              memory: 256Mi
+              cpu: "1"
+              memory: 768Mi
           readinessProbe:
             httpGet:
               path: /readyz
