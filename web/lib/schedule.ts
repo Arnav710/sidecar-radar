@@ -1,4 +1,5 @@
 import { planDay, type Plan, type PlanBlock, type Profile, type SavedSchedule } from "@sidecar/shared";
+import { log } from "@sidecar/shared/otel";
 import { listEvents } from "./events";
 import { es, hybridRetriever, INDEX } from "./es";
 import { profileQueryText } from "./profiles";
@@ -19,12 +20,14 @@ async function rankedIds(index: string, field: string, query: string): Promise<s
   if (!query.trim()) return [];
   try {
     const res = await es().search<{ id: string }>({
-      index, size: 100, _source: ["id"],
+      index, size: 50, _source: ["id"], // rank_window_size in hybridRetriever is 50, and size can't exceed it
       retriever: hybridRetriever(field, query) as never,
     });
     return res.hits.hits.map((h) => h._source?.id).filter((id): id is string => Boolean(id));
-  } catch {
-    return []; // search not ready: the plan still works, just without meaning-based ranking
+  } catch (err) {
+    // Search not ready: the plan still works, just without meaning-based ranking.
+    log("warn", "schedule.search_failed", { "sidecar.index": index, "error.type": (err as Error).name });
+    return [];
   }
 }
 
