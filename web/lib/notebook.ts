@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { formatOffset, type Folder, type Note, type NoteKind } from "@sidecar/shared";
+import { FOLDER, formatOffset, type Folder, type Note, type NoteKind } from "@sidecar/shared";
 import { es, INDEX } from "./es";
 import { listTalks } from "./talks";
 
@@ -7,7 +7,7 @@ import { listTalks } from "./talks";
 // kept in folders. Everything is scoped to the browser's anonymous uid, and
 // nothing here logs note text (Gitar rule 8).
 
-const DEFAULT_FOLDERS = ["Ideas to try", "Follow-ups", "People to meet"];
+const DEFAULT_FOLDERS = [FOLDER.ideas, FOLDER.followUps, FOLDER.people, FOLDER.questions, FOLDER.catchUps];
 const KINDS: NoteKind[] = ["note", "highlight", "favorite"];
 
 // ---- Folders ----
@@ -40,6 +40,16 @@ export async function createFolder(uid: string, rawName: unknown): Promise<Folde
   const folder: Folder = { id: randomUUID(), uid, name, created_at: new Date().toISOString() };
   await es().index({ index: INDEX.folders, id: folder.id, document: folder, refresh: "wait_for" });
   return folder;
+}
+
+/** The folder with this name (any capitalisation), made on the spot if it doesn't exist yet. */
+export async function ensureFolder(uid: string, rawName: string): Promise<Folder | null> {
+  const name = rawName.trim().slice(0, 40);
+  if (!name) return null;
+  const existing = (await listFolders(uid)).find((f) => f.name.toLowerCase() === name.toLowerCase());
+  if (existing) return existing;
+  const made = await createFolder(uid, name);
+  return "error" in made ? null : made;
 }
 
 export async function deleteFolder(uid: string, id: string): Promise<boolean> {

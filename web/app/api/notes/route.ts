@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NoteKind } from "@sidecar/shared";
 import { currentUid } from "@/lib/identity";
-import { createNote, deleteNote, listNotes, parseNoteInput } from "@/lib/notebook";
+import { createNote, deleteNote, ensureFolder, listNotes, parseNoteInput } from "@/lib/notebook";
 
 export const dynamic = "force-dynamic";
 
@@ -23,9 +23,19 @@ export async function DELETE(req: Request) {
   return NextResponse.json({ ok: true });
 }
 
+/**
+ * Save a note. Send `folder_id` to file it in a folder, or `folder_name` to file it
+ * by name (the folder is made if it doesn't exist): that is how the assistant files things.
+ */
 export async function POST(req: Request) {
   if (!process.env.ES_URL) return NextResponse.json({ error: "Elasticsearch is not configured." }, { status: 503 });
-  const parsed = parseNoteInput(await req.json().catch(() => null));
+  const body = await req.json().catch(() => null);
+  const parsed = parseNoteInput(body);
   if (!parsed.ok) return NextResponse.json({ error: parsed.error }, { status: 400 });
-  return NextResponse.json(await createNote(await currentUid(), parsed.value));
+
+  const uid = await currentUid();
+  const input = parsed.value;
+  const folderName = (body as { folder_name?: unknown })?.folder_name;
+  if (!input.folder_id && typeof folderName === "string") input.folder_id = (await ensureFolder(uid, folderName))?.id;
+  return NextResponse.json(await createNote(uid, input));
 }
