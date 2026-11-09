@@ -99,6 +99,11 @@
   }
 }
 
+/* Speedometer needle on /status: sweeps in from the far left (see SpeedGauge). */
+@keyframes needle-sweep {
+  from { transform: rotate(var(--needle-from)); }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 1ms !important; animation-iteration-count: 1 !important; transition-duration: 1ms !important; }
 }
