@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import type { MeetupView, VenueSpot } from "@/lib/meetup";
+import type { MeetupView, VenueSpot } from "@sidecar/shared";
 import { roomLabel, timeLabel } from "./format";
 
 const POLL_MS = 3000;
@@ -51,6 +51,13 @@ export function MeetupCard({ matchId, otherName }: { matchId: string; otherName:
         {v.you.minutes} min from your next room ({roomLabel(v.you.room_id)}), {v.them.minutes} min from theirs ({roomLabel(v.them.room_id)}).
         {" "}Only {v.spot.live_count} of {v.spot.capacity} spots taken right now.
       </p>
+      {v.spot.accessibility && (
+        <ul className="mt-2 flex flex-wrap gap-1.5" aria-label="Accessibility">
+          {v.spot.accessibility.step_free ? <li className="chip bg-white">♿ step-free</li> : <li className="chip bg-white">stairs</li>}
+          {v.spot.accessibility.seating && <li className="chip bg-white">🪑 seating</li>}
+          {v.spot.accessibility.quiet && <li className="chip bg-white">🤫 quiet</li>}
+        </ul>
+      )}
 
       <VenueMap venue={v.venue} spotId={v.spot.id} yourRoom={v.you.room_id} theirRoom={v.them.room_id} />
 

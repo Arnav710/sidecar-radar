@@ -83,6 +83,7 @@ const indices: Record<string, Record<string, unknown>> = {
     id: kw, name: { type: "text" }, kind: kw, location: { type: "geo_point" },
     x: { type: "float" }, y: { type: "float" }, w: { type: "float" }, h: { type: "float" },
     capacity: int, live_count: int,
+    accessibility: { properties: { step_free: { type: "boolean" }, quiet: { type: "boolean" }, seating: { type: "boolean" } } },
   },
   // A proposed meetup for a mutual match (id = the match id).
   "sidecar-meetups": {

@@ -1,4 +1,5 @@
-import type { Busy, PlanBlock } from "@sidecar/shared";
+import type { Busy, MeetupDoc, MeetupView, PlanBlock, VenueSpot } from "@sidecar/shared";
+export type { MeetupDoc, MeetupView, VenueSpot };
 import { firstSharedFreeSlot, walkMinutes } from "@sidecar/shared";
 import { DEFAULT_CONFERENCE_ID } from "./conferences";
 import { es, INDEX } from "./es";
@@ -11,32 +12,6 @@ import type { MatchDoc } from "./connect";
 //  2. where: Elasticsearch sorts meeting spots by geo_distance from the midpoint
 //     of both people's next rooms; spots over 80% full are skipped
 //  3. both accept -> it's added to both schedules
-
-export interface VenueSpot {
-  id: string; name: string; kind: "room" | "coffee" | "lounge" | "quiet";
-  x: number; y: number; w: number; h: number; capacity: number; live_count: number;
-  location: { lat: number; lon: number };
-}
-
-export interface MeetupDoc {
-  match_id: string;
-  spot_id: string;
-  start: string;
-  end: string;
-  accepted: string[];
-  state: "proposed" | "confirmed";
-  /** Next room and walking minutes per uid. */
-  walk: Record<string, { room_id: string; minutes: number }>;
-  updated_at: string;
-}
-
-export interface MeetupView {
-  meetup: MeetupDoc;
-  spot: VenueSpot;
-  you: { room_id: string; minutes: number; accepted: boolean };
-  them: { room_id: string; minutes: number; accepted: boolean };
-  venue: VenueSpot[];
-}
 
 const MEETING_KINDS = ["coffee", "lounge", "quiet"];
 
@@ -53,10 +28,19 @@ export async function venue(): Promise<VenueSpot[]> {
   return res.hits.hits.map((h) => h._source!);
 }
 
-async function busyOf(uid: string): Promise<{ busy: Busy[]; blocks: PlanBlock[] }> {
+async function busyOf(uid: string, exceptMatch: string): Promise<{ busy: Busy[]; blocks: PlanBlock[] }> {
   const blocks = (await getSchedule(uid, DEFAULT_CONFERENCE_ID))?.blocks ?? [];
+  // This person's other meetups (proposed or confirmed) are busy too, so nobody
+  // gets double-booked. Match ids contain both uids.
+  const others = await es()
+    .search<MeetupDoc>({
+      index: INDEX.meetups, size: 20, _source: ["start", "end"],
+      query: { bool: { filter: [{ wildcard: { match_id: `*${uid}*` } }], must_not: [{ term: { match_id: exceptMatch } }] } },
+    })
+    .then((r) => r.hits.hits.map((h) => ({ start: h._source!.start, end: h._source!.end })))
+    .catch(() => [] as Busy[]);
   // "handoff" blocks are free time the planner reserved for meeting people.
-  return { blocks, busy: blocks.filter((b) => b.kind !== "handoff") };
+  return { blocks, busy: [...blocks.filter((b) => b.kind !== "handoff"), ...others] };
 }
 
 /** The room someone will be in right after `at`: their next talk, else where they last asked, else the main stage. */
@@ -74,7 +58,7 @@ async function nextRoom(uid: string, blocks: PlanBlock[], at: string): Promise<s
 
 async function propose(match: MatchDoc, matchId: string): Promise<MeetupDoc | null> {
   const [a, b] = [match.uid_a, match.uid_b];
-  const [sa, sb] = await Promise.all([busyOf(a), busyOf(b)]);
+  const [sa, sb] = await Promise.all([busyOf(a, matchId), busyOf(b, matchId)]);
   const slot = firstSharedFreeSlot(sa.busy, sb.busy);
   if (!slot) return null;
 
@@ -137,7 +121,12 @@ async function view(uid: string, match: MatchDoc, m: MeetupDoc): Promise<MeetupV
 export async function getOrProposeMeetup(uid: string, matchId: string): Promise<MeetupView | null> {
   const match = await loadMatch(uid, matchId);
   if (!match) return null;
-  const existing = await es().get<MeetupDoc>({ index: INDEX.meetups, id: matchId }).then((r) => r._source).catch(() => undefined);
+  let existing = await es().get<MeetupDoc>({ index: INDEX.meetups, id: matchId }).then((r) => r._source).catch(() => undefined);
+  // A proposal whose time has already started is stale: drop it and propose a new one.
+  if (existing && existing.state === "proposed" && new Date(existing.start) <= new Date()) {
+    await es().delete({ index: INDEX.meetups, id: matchId, refresh: "wait_for" }).catch(() => {});
+    existing = undefined;
+  }
   const m = existing ?? (await propose(match, matchId));
   return m ? view(uid, match, m) : null;
 }
@@ -148,8 +137,9 @@ export async function acceptMeetup(uid: string, matchId: string): Promise<Meetup
   if (!match) return null;
   // Optimistic concurrency, as for "want to meet": both may accept at once.
   for (let attempt = 0; attempt < 5; attempt++) {
-    const cur = await es().get<MeetupDoc>({ index: INDEX.meetups, id: matchId });
-    const m = cur._source!;
+    const cur = await es().get<MeetupDoc>({ index: INDEX.meetups, id: matchId }).catch(() => null);
+    if (!cur?._source) return null; // nothing proposed yet: the route answers 404
+    const m = cur._source;
     if (!m.accepted.includes(uid)) m.accepted.push(uid);
     const confirmed = m.state !== "confirmed" && m.accepted.includes(match.uid_a) && m.accepted.includes(match.uid_b);
     if (confirmed) m.state = "confirmed";
