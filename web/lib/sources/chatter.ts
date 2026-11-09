@@ -81,13 +81,19 @@ async function aiEvents(items: Chatter[], now: string): Promise<OutsideEvent[] |
   if (!Array.isArray(parsed)) return null;
 
   const out: OutsideEvent[] = [];
+  // A single message can announce several events (a daily agenda). Count how many
+  // we've already pulled from each message, so each one gets a distinct, stable id
+  // instead of colliding with the others and overwriting each other on save.
+  const seenPerMessage = new Map<number, number>();
   for (const e of parsed as AiEvent[]) {
     const c = items[e?.i];
     const start = e?.start_local ? localToIso(e.start_local) : null;
     if (!c || !start || !e.title) continue;
+    const n = seenPerMessage.get(e.i) ?? 0;
+    seenPerMessage.set(e.i, n + 1);
     const kinds = ["networking", "workshop", "social", "other"] as const;
     out.push({
-      id: `${c.source}:${c.id}`,
+      id: n === 0 ? `${c.source}:${c.id}` : `${c.source}:${c.id}:${n}`,
       source: c.source,
       title: String(e.title).slice(0, 100),
       description: c.text.slice(0, 1000),

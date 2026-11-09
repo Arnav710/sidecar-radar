@@ -88,11 +88,15 @@ export async function extractEventAnnouncements(messages: string[], todayLocal: 
       `Today's date at the venue is ${todayLocal} (Mountain Time). ` +
       "Each message starts with the date it was posted, like [posted 2026-11-07]. Read words like tonight, tomorrow or Friday " +
       "from that posted date, not from today. " +
+      "A single message can announce more than one event (for example a full day's agenda with several time slots): " +
+      "list every event you find in it as its own separate item, all using that same message number. " +
+      "Include talks, keynotes and workshops too, not just social meetups: anything with a clear time and place that " +
+      "someone could show up to counts as an event. Do not skip an item in an agenda just because it looks formal. " +
       'Reply with ONLY a JSON array. Each item: {"i": message number, "title": string, "start_local": "YYYY-MM-DDTHH:mm", ' +
       '"end_local": "YYYY-MM-DDTHH:mm" or null, "location": string or null, "kind": "networking"|"workshop"|"social"|"other", "topics": string[]}. ' +
-      "Skip a message if you cannot tell when it happens. Reply [] if nothing qualifies.",
-    messages.map((t, i) => `${i}: ${t.replace(/\s+/g, " ").slice(0, 400)}`).join("\n"),
-    900,
+      "Skip an event if you cannot tell when it happens. Reply [] if nothing qualifies.",
+    messages.map((t, i) => `${i}: ${t.replace(/\s+/g, " ").slice(0, 3000)}`).join("\n"),
+    2500,
   );
 }
 
