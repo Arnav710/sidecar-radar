@@ -10,18 +10,21 @@
 4. **Phone 1 (presenter) and Phone 2 (teammate, "the other attendee"):** both open `/talk/sidecar-live-pitch`. Each sets a display name at `/onboarding` (e.g. "Priya", "Sam").
 5. Backup: `npm run replay` streams a recorded talk into Room B if the mic fails; the screen recording is the last resort.
 
-## The script
+## The script (3 minutes, the question is the hero)
+
+**Screen setup:** one laptop on the projector with **two browser windows side by side**: left = *you* (normal Chrome window), right = *your teammate* (an **incognito** window, so it's a different person). Both open `/talk/sidecar-live-pitch`. Phones work too, but side-by-side windows let the judges see both devices at once.
+
+**Do this 2 minutes before you start:** in the right (teammate) window, ask *"Our tracing bill exploded, how can we sample in the collector without losing errors?"* So your teammate "already asked during the talk". It's real, not seeded.
 
 | Time | Say | Do / show |
 |---|---|---|
-| 0:00–0:20 | "The best part of a conference is the people. But 52% of attendees say the most valuable thing is meeting people facing *similar challenges*, and nobody shows you who they are. Job titles don't tell you who to meet. **The question you just asked does.**" | Title slide |
-| 0:20–0:40 | "Scan this. **This pitch is now a live talk.**" | Room laptop QR. Judges' phones show live captions of what you're saying. |
-| 0:40–1:10 | "Say I'm lost on sampling…" Ask on Phone 1: *"How do I keep error traces when we sample?"* | The answer quotes what was said seconds ago with a timestamp chip, plus **where to go next** (Tail Sampling Deep Dive). Tap **I'm lost**: the last 30 seconds re-explained. |
-| 1:05–1:10 | "And if someone else here is stuck on the same thing…" | Phone 2 asks a similar question in different words. Within seconds both phones pop up **"🔥 Someone here is stuck on the same thing"** → tap → the blind card. |
-| 1:10–1:40 | "Here's the hallway track for this room." | Projector: the **people graph**. Bold orange lines = same problem, dashed = same interests. Phone 2 asks a similar question in different words: a new bold edge appears live. |
-| 1:40–2:10 | "Names stay hidden until both say yes." | Phone 1 `/connect`: **Matched from what you asked**, your graph with you in orange, and a blind card: *"Also stuck on: keeping error traces while cutting tracing costs"*. Both phones tap **Want to meet** → 🎉 mutual, names + **conversation kit** (why you two, opener, follow-ups). |
-| 2:10–2:30 | "And it books the meeting." | Meetup card: **first free slot in both schedules + nearest uncrowded spot**, on the venue map. Both accept → on both schedules. |
-| 2:30–3:00 | "Under the hood…" | **Elasticsearch:** hybrid search + RRF over the live transcript; matching is one `linear` retriever (0.6 / 0.3 / 0.1); rarity from IDF; meetup spot from `geo_distance`. **Dash0:** one question's trace across web → worker → Elasticsearch → OpenAI, and the SLO dashboard. **Radar:** the rollout timeline and investigation. **Gitar:** PRs with real catches (room keys in git, raw questions leaking into match cards, a race in mutual accept). |
+| 0:00–0:20 | "The best part of a conference is the people. 52% of attendees say the most valuable thing is meeting people facing *similar challenges*, and nobody tells you who they are. Job titles don't. **The question you just asked does.**" | Title slide |
+| 0:20–0:45 | "Scan this. **This pitch is now a live talk.**" Teammate speaks two sentences about tracing costs. | Room laptop QR + live captions appearing in both windows. |
+| 0:45–1:20 | "I'm lost, so I'll ask privately." Left window asks *"How do I stop paying for healthy traces but keep the failing ones?"* | The answer **quotes what was just said with its timestamp**, then **"Already covered in another session"** (OpenTelemetry at Scale, Room B, at 1:20) and **"Coming up at this KubeCon"** (Tail Sampling Deep Dive). |
+| 1:20–1:50 | "And look: someone here is stuck on the same thing." | Left window pops up **"🔥 Someone here is stuck on the same thing"** → tap → **blind card** (role, shared problem, no name) → **Want to meet**. Right window pops up **"👋 Someone wants to meet you"** → **Say yes**. Both: **"🎉 It's mutual"**. |
+| 1:50–2:15 | "Now the conversation is already started, and it's booked." | `/connect`: names + **conversation kit** (opener, follow-ups), the **meetup** (first free slot in both schedules + nearest uncrowded spot, on the venue map), and **your hallway graph** with you in orange. |
+| 2:15–2:35 | "And the speaker finally gets feedback." | Room laptop → **📊 Speaker report**: confusion spike at minute 2, the themes the room asked about, the AI "what to change next time". |
+| 2:35–3:00 | "Under the hood…" | **Elasticsearch:** hybrid BM25 + semantic with RRF over the live transcript; matching is one `linear` retriever (0.6 / 0.3 / 0.1), rarity from IDF, meetup spot by `geo_distance`, speaker themes with k-anonymity. **Dash0:** the trace of that question across web → worker → Elasticsearch → OpenAI, plus SLOs. **Radar:** rollout + investigation. **Gitar:** real catches. |
 
 ## Lines worth having ready
 - **Why matching on questions works:** "Two people who ask 'what is eBPF' shouldn't meet. Two people asking how to keep error traces while cutting cost should. We classify every question and only match on applied and experience ones."
