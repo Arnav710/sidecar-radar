@@ -29,6 +29,24 @@ spec:
               value: "http://worker"
             - name: OTEL_SERVICE_NAME
               value: "sidecar-web"
+            - name: DEPLOYMENT_ENVIRONMENT
+              value: "hackathon"
+            # Kubernetes context on every span, metric and log, so Dash0 data
+            # lines up with what Radar shows for the same pod.
+            - name: K8S_POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: K8S_NAMESPACE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: K8S_NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            - name: OTEL_RESOURCE_ATTRIBUTES
+              value: "k8s.pod.name=$(K8S_POD_NAME),k8s.namespace.name=$(K8S_NAMESPACE_NAME),k8s.node.name=$(K8S_NODE_NAME),k8s.deployment.name=app"
           # ES_URL, ES_API_KEY, OPENAI_API_KEY, DASH0_AUTH_TOKEN and
           # OTEL_EXPORTER_OTLP_ENDPOINT come from a Secret a human creates
           # (never in git). optional: the app still starts before it exists.
