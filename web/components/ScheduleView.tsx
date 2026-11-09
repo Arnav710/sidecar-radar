@@ -18,11 +18,12 @@ function blockFrom(alt: PlanAlternative, alternatives?: PlanAlternative[]): Plan
   return {
     id: `${alt.kind}:${alt.ref}`, kind: alt.kind, start: alt.start, end: alt.end, title: alt.title, ref: alt.ref,
     room_id: alt.room_id, location: alt.location, url: alt.url, why: alt.why, ...(alternatives?.length ? { alternatives } : {}),
+    ...(alt.accessibility ? { accessibility: alt.accessibility } : {}),
   };
 }
 
 function altFrom(b: PlanBlock): PlanAlternative {
-  return { kind: b.kind === "event" ? "event" : "talk", ref: b.ref ?? "", title: b.title, start: b.start, end: b.end, room_id: b.room_id, location: b.location, url: b.url, why: b.why ?? "" };
+  return { kind: b.kind === "event" ? "event" : "talk", ref: b.ref ?? "", title: b.title, start: b.start, end: b.end, room_id: b.room_id, location: b.location, url: b.url, why: b.why ?? "", ...(b.accessibility ? { accessibility: b.accessibility } : {}) };
 }
 
 type Status = "loading" | "ready" | "no-profile" | "error";

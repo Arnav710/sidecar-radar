@@ -3,7 +3,7 @@ import { log } from "@sidecar/shared/otel";
 import { listEvents } from "./events";
 import { es, hybridRetriever, INDEX } from "./es";
 import { isAnonymous } from "./identity";
-import { profileQueryText } from "./profiles";
+import { getProfile, profileQueryText } from "./profiles";
 import { listTalks } from "./talks";
 
 // Builds and stores each attendee's schedule. Search runs here (all Elasticsearch
@@ -77,7 +77,13 @@ export async function saveSchedule(uid: string, conference: string, blocks: Plan
  * to swap back to.
  */
 export async function chooseTalk(uid: string, conference: string, talk: Talk): Promise<void> {
-  const blocks = (await getSchedule(uid, conference))?.blocks ?? [];
+  // No schedule yet: start from the full recommended plan (if they have a profile), so the
+  // scan adds a talk to a real day instead of saving a day with only this talk in it.
+  let blocks = (await getSchedule(uid, conference))?.blocks;
+  if (!blocks) {
+    const profile = await getProfile(uid);
+    blocks = profile ? (await buildPlan(profile, conference)).blocks : [];
+  }
   if (blocks.some((b) => b.kind === "talk" && b.ref === talk.id)) return;
 
   const overlaps = (b: PlanBlock) => Date.parse(b.start) < Date.parse(talk.end) && Date.parse(talk.start) < Date.parse(b.end);
