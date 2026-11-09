@@ -12,4 +12,4 @@ resources:
 images:
   - name: app
     newName: ghcr.io/arnav710/sidecar-radar
-    newTag: 3c15721
+    newTag: ec27c57
