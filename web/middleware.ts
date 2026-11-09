@@ -10,15 +10,13 @@ export function middleware(req: NextRequest) {
   const headers = new Headers(req.headers);
   headers.set("cookie", [headers.get("cookie"), `sidecar_uid=${uid}`].filter(Boolean).join("; "));
   const res = NextResponse.next({ request: { headers } });
-  {
-    res.cookies.set("sidecar_uid", uid, {
-      httpOnly: true,
-      sameSite: "lax",
-      secure: req.nextUrl.protocol === "https:",
-      maxAge: 60 * 60 * 24 * 30,
-      path: "/",
-    });
-  }
+  res.cookies.set("sidecar_uid", uid, {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: req.nextUrl.protocol === "https:",
+    maxAge: 60 * 60 * 24 * 30,
+    path: "/",
+  });
   return res;
 }
 
