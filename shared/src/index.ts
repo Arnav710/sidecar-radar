@@ -7,3 +7,4 @@ export * from "./time";
 export * from "./planner";
 export * from "./chat";
 export * from "./meetup";
+export * from "./timeline";
