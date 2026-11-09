@@ -11,6 +11,8 @@ export const INDEX = {
   profiles: "sidecar-profiles",
   events: "sidecar-events",
   schedules: "sidecar-schedules",
+  notes: "sidecar-notes",
+  folders: "sidecar-folders",
 } as const;
 
 /**
