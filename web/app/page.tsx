@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { AppShell, Page } from "@/components/AppShell";
-import { dateLabel, durationLabel } from "@/components/format";
+import { dateLabel, untilLabel } from "@/components/format";
 import { IconBook, IconCalendar, IconLink, IconPlus } from "@/components/Icons";
 import { conferenceStatus, listConferences, type Conference } from "@/lib/conferences";
 import { currentUid } from "@/lib/identity";
@@ -74,7 +74,7 @@ function ConferenceCard({ conf, planned, now }: { conf: Conference; planned: num
   const status = conferenceStatus(conf, now);
   const badge =
     status === "live" ? <span className="pill bg-good-soft text-good"><span className="h-1.5 w-1.5 animate-pulse-dot rounded-full bg-good" /> Happening now</span>
-    : status === "upcoming" ? <span className="pill">Starts in {durationLabel(Date.parse(conf.start) - now.getTime()).replace(/ \d+ min$/, "")}</span>
+    : status === "upcoming" ? <span className="pill">Starts in {untilLabel(Date.parse(conf.start) - now.getTime())}</span>
     : <span className="pill">Ended</span>;
 
   return (

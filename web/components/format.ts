@@ -22,6 +22,15 @@ export function durationLabel(ms: number): string {
   return h > 0 ? `${h} h ${String(m).padStart(2, "0")} min` : `${m} min`;
 }
 
+/** A far-off start, in the largest sensible unit: "20 min", "5 hours", "45 days". */
+export function untilLabel(ms: number): string {
+  const minutes = Math.max(0, Math.round(ms / 60_000));
+  if (minutes < 60) return `${minutes} min`;
+  const hours = Math.round(minutes / 60);
+  if (hours < 48) return `${hours} ${hours === 1 ? "hour" : "hours"}`;
+  return `${Math.round(hours / 24)} days`;
+}
+
 /** Soft tints for room chips. Rooms are told apart by name, not only by color. */
 export const ROOM_COLORS: Record<string, string> = {
   main: "var(--color-accent-soft)",
