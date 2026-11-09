@@ -1,12 +1,18 @@
 import type { Chatter } from "./chatter";
+import { fetchSlackMessagesMock } from "./slack-mock";
 
 // Slack: read recent messages from the conference's channels with a bot token.
 // Needs SLACK_BOT_TOKEN (a bot with the channels:history scope, added to those
 // channels) and SLACK_CHANNEL_IDS (comma separated, like C0123456789).
 // There is also a Slack MCP server (https://mcp.slack.com/mcp) for use from a
 // coding agent; the app itself talks to Slack's Web API directly.
+//
+// Set SLACK_MOCK=1 to use realistic sample messages instead (demos, local dev,
+// or when a real Slack workspace isn't set up yet): no token needed.
 
-export const slackConfigured = () => Boolean(process.env.SLACK_BOT_TOKEN && process.env.SLACK_CHANNEL_IDS?.trim());
+const mockOn = () => process.env.SLACK_MOCK === "1";
+
+export const slackConfigured = () => mockOn() || Boolean(process.env.SLACK_BOT_TOKEN && process.env.SLACK_CHANNEL_IDS?.trim());
 
 interface SlackMessage {
   ts: string;
@@ -16,6 +22,8 @@ interface SlackMessage {
 }
 
 export async function fetchSlackMessages(): Promise<Chatter[]> {
+  if (mockOn()) return fetchSlackMessagesMock();
+
   const channels = (process.env.SLACK_CHANNEL_IDS ?? "").split(",").map((c) => c.trim()).filter(Boolean);
   const out: Chatter[] = [];
 
