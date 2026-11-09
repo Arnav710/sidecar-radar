@@ -1,3 +1,24 @@
+# Sidecar
+
+**Ask the talk anything, live. The people stuck on the same thing become your hallway track.**
+
+The best part of a conference is the people, but starting a conversation with a stranger is hard, and most hallway chats are forgettable. Sidecar introduces you to people because you share a real problem, so **every introduction comes with the conversation already started**.
+
+Built at the Cloud Native Hackathon (WeMakeDevs, Salt Lake City, Nov 9 2026). Live at https://sidecar.cnh.radarhq.io
+
+| Doc | What's in it |
+|---|---|
+| [docs/PLAN.md](docs/PLAN.md) | Product plan: flow, features, demo script, team split, open questions |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Tech plan: stack, deployment, ES data model, API, observability, CI, build order |
+| [docs/HACKATHON_REQUIREMENTS.md](docs/HACKATHON_REQUIREMENTS.md) | Rules, tracks, judging criteria |
+| [docs/research/](docs/research/) | Researched conference problems, with sources |
+
+**Setup:** _TBD as services land._ **AI usage:** built with AI coding assistants (Claude Code and others), as the rules allow. All code is reviewed, understood and tested by the team, and every feature lands through a reviewed PR.
+
+---
+
+_Below: the Radar starter template's instructions (cluster, GitOps, secrets). Keep until the setup section above is written._
+
 # Radar AI SRE track starter: Cloud Native Hackathon
 
 Start here if your team has its own cluster at the hackathon: a virtual Kubernetes cluster (vcluster) where you're cluster-admin. You get a small app that `git push` deploys through Argo CD, and notes your coding agent reads so it ships through [Radar](https://radarhq.io)'s MCP server. Below is a menu of what Radar can do: pick what your project needs.
