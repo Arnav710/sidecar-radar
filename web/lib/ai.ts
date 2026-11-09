@@ -92,6 +92,30 @@ export async function extractEventAnnouncements(messages: string[], todayLocal: 
   );
 }
 
+/** "Catch me up": the story of the talk so far, in the attendee's terms. */
+export async function catchUp(talkTitle: string, lines: string[], who: string): Promise<string> {
+  return complete(
+    "catch_up",
+    "You catch a conference attendee up on a talk that is already underway. Write 3 to 5 short bullet points (start each with '- ') " +
+      "covering the main ideas so far, in order. Plain words, define jargon, no preamble. " +
+      `About the attendee, so you can pitch it right: ${who}`,
+    `Talk: ${talkTitle}\n\nEverything said so far:\n${lines.join("\n")}`,
+    420,
+  );
+}
+
+/** "Apply to my work": connect what was said to what this person is building. */
+export async function applyToWork(talkTitle: string, lines: string[], who: string): Promise<string> {
+  return complete(
+    "apply_to_work",
+    "You help a conference attendee use what a talk says in their own work. In 2 to 4 sentences, say how the most relevant ideas " +
+      "could apply to what they are working on, and name one concrete thing to try. If nothing said so far applies, say so honestly. " +
+      `About the attendee: ${who}`,
+    `Talk: ${talkTitle}\n\nWhat has been said:\n${lines.join("\n")}`,
+    320,
+  );
+}
+
 /** "I'm lost": explain the last ~30 seconds at the attendee's level. */
 export async function explainWindow(talkTitle: string, lines: string[], level: string): Promise<string> {
   return complete(

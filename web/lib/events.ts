@@ -4,10 +4,15 @@ import { es, INDEX } from "./es";
 /** Save events, using the id as the document id so syncing again updates instead of duplicating. */
 export async function saveEvents(events: OutsideEvent[]): Promise<void> {
   if (events.length === 0) return;
-  const res = await es().bulk({
-    refresh: "wait_for",
-    operations: events.flatMap((e) => [{ index: { _index: INDEX.events, _id: e.id } }, e]),
-  });
+  // Saving makes Elasticsearch write a meaning-embedding for each description, which
+  // can take a while the first time (the model loads), so this call gets a long timeout.
+  const res = await es().bulk(
+    {
+      refresh: "wait_for",
+      operations: events.flatMap((e) => [{ index: { _index: INDEX.events, _id: e.id } }, e]),
+    },
+    { requestTimeout: 120_000 },
+  );
   if (res.errors) throw new Error("Some events could not be saved to Elasticsearch.");
 }
 

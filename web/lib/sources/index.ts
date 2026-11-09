@@ -26,7 +26,9 @@ export async function syncOutsideEvents(): Promise<SourceSyncResult[]> {
       }
       try {
         const events = await load();
-        await saveEvents(events);
+        // The first save after a cold start can time out while Elasticsearch loads its
+        // embedding model, so try once more before giving up.
+        await saveEvents(events).catch(() => saveEvents(events));
         results.push({ source, status: "ok", found: events.length });
       } catch (err) {
         log("warn", "sources.sync_failed", { "sidecar.source": source, "error.type": (err as Error).name });
@@ -35,4 +37,9 @@ export async function syncOutsideEvents(): Promise<SourceSyncResult[]> {
     }
     return results;
   });
+}
+
+/** Which sources have keys set, so the app can show what is connected. */
+export function sourceStatus(): Array<{ source: OutsideSource; configured: boolean }> {
+  return SOURCES.map(({ source, configured }) => ({ source, configured: configured() }));
 }

@@ -172,6 +172,46 @@ export interface SourceSyncResult {
   message?: string;
 }
 
+// ---- Personal notebook ----
+
+/** "favorite" saves a whole talk; "highlight" saves a transcript line; "note" is the attendee's own writing. */
+export type NoteKind = "note" | "highlight" | "favorite";
+
+export interface Note {
+  id: string;
+  uid: string;
+  talk_id: string;
+  conference_id?: string;
+  /** Empty means unfiled. */
+  folder_id?: string;
+  kind: NoteKind;
+  text: string;
+  /** The transcript line this note is about, if any. */
+  quote?: string;
+  /** Seconds into the talk when it was written, so the note can point back to the moment. */
+  offset_s?: number;
+  created_at: string;
+}
+
+export interface Folder {
+  id: string;
+  uid: string;
+  name: string;
+  created_at: string;
+}
+
+export interface CatchUpResponse {
+  summary: string;
+  /** How much of the talk the summary covers, in seconds. */
+  covered_s: number;
+  mode: "ai" | "extract";
+}
+
+export interface ApplyResponse {
+  text: string;
+  mode: "ai" | "extract";
+}
+
 // ---- The recommended schedule ----
 
 /** Something the attendee could do instead of (or in addition to) what the plan picked. */
