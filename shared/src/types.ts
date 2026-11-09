@@ -189,6 +189,8 @@ export interface PlanAlternative {
   why: string;
   /** True for a talk that clashes with a pick: its captions and answers stay available in Sidecar. */
   catch_up?: boolean;
+  /** Accessibility metadata from the talk or event (repo rule 3). null means unknown. */
+  accessibility?: EventAccessibility;
 }
 
 /**
@@ -212,6 +214,8 @@ export interface PlanBlock {
   alternatives?: PlanAlternative[];
   /** Handoff blocks only: "open" is just a free slot, "held" is reserved for a match. */
   handoff?: "open" | "held";
+  /** Accessibility metadata from the talk or event (repo rule 3). null means unknown. */
+  accessibility?: EventAccessibility;
 }
 
 export interface Plan {

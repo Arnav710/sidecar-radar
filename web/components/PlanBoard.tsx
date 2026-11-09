@@ -55,8 +55,10 @@ export function PlanBoard() {
         // The pool of other options comes from a fresh plan, so the "add" list stays current.
         const plan = await fetch("/api/schedule/plan");
         if (plan.ok) setPool(((await plan.json()) as Plan).pool);
+      } else if (res.status === 404) {
+        await loadPlan(); // no schedule yet: make one
       } else {
-        await loadPlan();
+        setStatus("error"); // a failure is not "no schedule": never plan over the saved one
       }
     })().catch(() => setStatus("error"));
   }, [loadPlan]);
@@ -222,6 +224,7 @@ function BlockCard({ block, onRemove, onSwap, onHandoff }: {
         {block.kind === "talk" ? <a className="hover:underline" href={`/talk/${block.ref}`}>{block.title}</a> : block.url ? <a className="hover:underline" href={block.url} target="_blank" rel="noreferrer">{block.title}</a> : block.title}
       </h3>
       {block.why && <p className="mt-1 text-sm text-ink-soft">{block.why}</p>}
+      <AccessibilityChips a={block.accessibility} />
 
       {block.alternatives && block.alternatives.length > 0 && (
         <div className="mt-3 border-t-2 border-dashed border-ink/20 pt-3">
@@ -244,5 +247,17 @@ function BlockCard({ block, onRemove, onSwap, onHandoff }: {
         <button type="button" className="font-display text-sm font-bold text-ink-soft underline" onClick={onRemove}>Remove from my day</button>
       </div>
     </article>
+  );
+}
+
+/** Accessibility facts that are known to be true (repo rule 3). Unknown ones are left out rather than shown as "no". */
+function AccessibilityChips({ a }: { a?: PlanBlock["accessibility"] }) {
+  if (!a) return null;
+  const items = [a.captions && "Live captions", a.step_free && "Step-free", a.quiet_room_nearby && "Quiet room nearby"].filter(Boolean) as string[];
+  if (items.length === 0) return null;
+  return (
+    <ul className="mt-2 flex flex-wrap gap-1.5" aria-label="Accessibility">
+      {items.map((t) => <li key={t} className="chip bg-white">{t}</li>)}
+    </ul>
   );
 }
