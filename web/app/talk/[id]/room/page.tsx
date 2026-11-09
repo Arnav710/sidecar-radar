@@ -22,7 +22,7 @@ export default async function RoomPage({
 
   const h = await headers();
   const origin = `${h.get("x-forwarded-proto") ?? "http"}://${h.get("host")}`;
-  const joinUrl = `${origin}/talk/${talk.id}`;
+  const joinUrl = `${origin}/join/${talk.id}`;
   const qrSvg = await QRCode.toString(joinUrl, { type: "svg", margin: 1, color: { dark: "#17131f", light: "#fff6e6" } });
 
   return (

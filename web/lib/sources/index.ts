@@ -36,3 +36,8 @@ export async function syncOutsideEvents(): Promise<SourceSyncResult[]> {
     return results;
   });
 }
+
+/** Which sources have keys set, so the app can show what is connected. */
+export function sourceStatus(): Array<{ source: OutsideSource; configured: boolean }> {
+  return SOURCES.map(({ source, configured }) => ({ source, configured: configured() }));
+}

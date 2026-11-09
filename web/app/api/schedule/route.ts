@@ -1,12 +1,15 @@
 import { NextResponse } from "next/server";
+import { DEFAULT_CONFERENCE_ID } from "@/lib/conferences";
 import { currentUid } from "@/lib/identity";
 import { getSchedule, parseBlocks, saveSchedule } from "@/lib/schedule";
 
 export const dynamic = "force-dynamic";
 
-/** The schedule this browser saved (404 if none yet). */
-export async function GET() {
-  const saved = await getSchedule(await currentUid());
+const confOf = (req: Request) => new URL(req.url).searchParams.get("conf") || DEFAULT_CONFERENCE_ID;
+
+/** The schedule this browser saved for a conference (?conf=<id>); 404 if none yet. */
+export async function GET(req: Request) {
+  const saved = await getSchedule(await currentUid(), confOf(req));
   if (!saved) return NextResponse.json({ error: "No saved schedule yet." }, { status: 404 });
   return NextResponse.json(saved);
 }
@@ -19,7 +22,7 @@ export async function PUT(req: Request) {
   if (!parsed.ok) return NextResponse.json({ error: parsed.error }, { status: 400 });
 
   try {
-    return NextResponse.json(await saveSchedule(await currentUid(), parsed.blocks));
+    return NextResponse.json(await saveSchedule(await currentUid(), confOf(req), parsed.blocks));
   } catch {
     return NextResponse.json({ error: "Could not save the schedule." }, { status: 502 });
   }
