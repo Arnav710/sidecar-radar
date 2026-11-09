@@ -1,20 +1,9 @@
 import Link from "next/link";
 import { Logo } from "@/components/Logo";
+import { ROOM_COLORS, roomLabel, timeLabel } from "@/components/format";
 import { isLive, listTalks } from "@/lib/talks";
 
 export const dynamic = "force-dynamic";
-
-const ROOM_COLORS: Record<string, string> = {
-  "room-a": "var(--color-sky)",
-  "room-b": "var(--color-lilac)",
-  "room-c": "var(--color-sun)",
-  "room-d": "var(--color-bubble)",
-  main: "var(--color-lime)",
-};
-
-function timeLabel(iso: string) {
-  return new Date(iso).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", timeZone: "America/Denver" });
-}
 
 export default async function Home() {
   const { talks, connected } = await listTalks();
@@ -83,7 +72,7 @@ export default async function Home() {
             >
               <div className="flex items-center justify-between">
                 <span className="chip" style={{ background: ROOM_COLORS[t.room_id] ?? "white" }}>
-                  {t.room_id.replace("room-", "Room ").toUpperCase()}
+                  {roomLabel(t.room_id)}
                 </span>
                 {isLive(t) ? (
                   <span className="chip bg-tangerine text-white">
