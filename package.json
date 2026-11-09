@@ -16,7 +16,8 @@
     "test": "npm run test -w shared",
     "es:setup": "tsx scripts/es-setup.ts",
     "seed": "tsx scripts/seed.ts",
-    "replay": "tsx scripts/replay-room.ts"
+    "replay": "tsx scripts/replay-room.ts",
+    "sync:sources": "tsx scripts/sync-sources.ts"
   },
   "devDependencies": {
     "tsx": "4.19.4",
