@@ -63,8 +63,13 @@ function localToIso(local: string): string | null {
   return zonedTimeToUtc(Number(m[1]), Number(m[2]), Number(m[3]), Number(m[4]), Number(m[5]), VENUE_TZ_NAME).toISOString();
 }
 
+/** How many messages go to the model in one call. */
+const AI_BATCH = 40;
+
 async function aiEvents(items: Chatter[], now: string): Promise<OutsideEvent[] | null> {
-  const raw = await tryAi(() => extractEventAnnouncements(items.map((c) => c.text), venueDate(new Date()).label));
+  // Each line carries its posted date, so "tonight" in an old message isn't read as today.
+  const lines = items.map((c) => `[posted ${venueDate(new Date(c.createdAt)).label}] ${c.text}`);
+  const raw = await tryAi(() => extractEventAnnouncements(lines, venueDate(new Date()).label));
   if (!raw) return null;
   let parsed: unknown;
   try {
@@ -101,9 +106,14 @@ async function aiEvents(items: Chatter[], now: string): Promise<OutsideEvent[] |
 export async function eventsFromChatter(items: Chatter[]): Promise<OutsideEvent[]> {
   if (items.length === 0) return [];
   const now = new Date().toISOString();
-  if (aiEnabled()) {
-    const viaAi = await aiEvents(items.slice(0, 40), now);
-    if (viaAi) return viaAi;
+  const heuristic = (batch: Chatter[]) => batch.map((c) => heuristicEvent(c, now)).filter((e): e is OutsideEvent => e !== null);
+  if (!aiEnabled()) return heuristic(items);
+
+  // Every message is read: in batches for the model, falling back to keywords for any batch it can't do.
+  const out: OutsideEvent[] = [];
+  for (let i = 0; i < items.length; i += AI_BATCH) {
+    const batch = items.slice(i, i + AI_BATCH);
+    out.push(...((await aiEvents(batch, now)) ?? heuristic(batch)));
   }
-  return items.map((c) => heuristicEvent(c, now)).filter((e): e is OutsideEvent => e !== null);
+  return out;
 }

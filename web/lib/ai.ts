@@ -82,6 +82,8 @@ export async function extractEventAnnouncements(messages: string[], todayLocal: 
     "You read short chat messages and posts from a conference and pick out announcements of real events people can attend " +
       "(meetups, workshops, dinners, drinks, hikes, after-parties). Ignore everything else. " +
       `Today's date at the venue is ${todayLocal} (Mountain Time). ` +
+      "Each message starts with the date it was posted, like [posted 2026-11-07]. Read words like tonight, tomorrow or Friday " +
+      "from that posted date, not from today. " +
       'Reply with ONLY a JSON array. Each item: {"i": message number, "title": string, "start_local": "YYYY-MM-DDTHH:mm", ' +
       '"end_local": "YYYY-MM-DDTHH:mm" or null, "location": string or null, "kind": "networking"|"workshop"|"social"|"other", "topics": string[]}. ' +
       "Skip a message if you cannot tell when it happens. Reply [] if nothing qualifies.",
