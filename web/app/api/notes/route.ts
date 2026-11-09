@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NoteKind } from "@sidecar/shared";
 import { currentUid } from "@/lib/identity";
-import { createNote, listNotes, parseNoteInput } from "@/lib/notebook";
+import { createNote, deleteNote, listNotes, parseNoteInput } from "@/lib/notebook";
 
 export const dynamic = "force-dynamic";
 
@@ -12,6 +12,15 @@ export async function GET(req: Request) {
   const kind = q.get("kind") as NoteKind | null;
   const notes = await listNotes(await currentUid(), { talk_id: q.get("talk") ?? undefined, kind: kind ?? undefined });
   return NextResponse.json({ notes });
+}
+
+/** Unsave a talk: DELETE /api/notes?favorite=<talk id>. */
+export async function DELETE(req: Request) {
+  const talk = new URL(req.url).searchParams.get("favorite");
+  if (!talk) return NextResponse.json({ error: "Say which talk." }, { status: 400 });
+  const uid = await currentUid();
+  await deleteNote(uid, `fav:${uid}:${talk}`);
+  return NextResponse.json({ ok: true });
 }
 
 export async function POST(req: Request) {
