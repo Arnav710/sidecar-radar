@@ -8,6 +8,7 @@ resources:
   - deployment.yaml
   - service.yaml
   - httproute.yaml
+  - worker.yaml
 images:
   - name: app
     newName: ghcr.io/arnav710/sidecar-radar

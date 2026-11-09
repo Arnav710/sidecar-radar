@@ -1,0 +1,23 @@
+{
+  "name": "sidecar",
+  "private": true,
+  "description": "Sidecar: ask the talk anything, live. The people stuck on the same thing become your hallway track.",
+  "workspaces": [
+    "shared",
+    "web",
+    "worker"
+  ],
+  "scripts": {
+    "dev": "npm run dev -w web",
+    "dev:worker": "npm run dev -w worker",
+    "build": "npm run build -w web && npm run build -w worker",
+    "lint": "npm run lint -w web",
+    "typecheck": "npm run typecheck -w web && npm run typecheck -w worker",
+    "test": "npm run test -w shared"
+  },
+  "devDependencies": {
+    "tsx": "4.19.4",
+    "typescript": "5.8.3",
+    "@types/node": "22.15.29"
+  }
+}
