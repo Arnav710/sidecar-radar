@@ -1,4 +1,5 @@
 import OpenAI from "openai";
+import { recordHealth } from "@sidecar/shared";
 import { log, m, withSpan } from "@sidecar/shared/otel";
 
 // All LLM calls go through this file (Gitar rule 9). When OPENAI_API_KEY is
@@ -25,6 +26,8 @@ export async function tryAi(fn: () => Promise<string>): Promise<string | null> {
   try {
     return (await fn()) || null;
   } catch (err) {
+    // Counts every failed AI call (answers, signal, summaries); the caller then falls back to quotes.
+    recordHealth("aiFallbacks", 1);
     log("warn", "ai.failed_fallback_to_quote", { "error.type": (err as Error).name, "http.response.status_code": (err as { status?: number }).status ?? 0 });
     return null;
   }
@@ -52,6 +55,7 @@ async function complete(operation: string, system: string, user: string, maxToke
     m().llmTokens.add(usage.input, { ...attrs, "gen_ai.token.type": "input" });
     m().llmTokens.add(usage.output, { ...attrs, "gen_ai.token.type": "output" });
     m().llmDuration.record((performance.now() - started) / 1000, attrs);
+    recordHealth("llmTokens", usage.input + usage.output);
     return res.choices[0]?.message?.content?.trim() ?? "";
   });
 }

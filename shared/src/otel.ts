@@ -101,9 +101,9 @@ let instruments: Instruments | undefined;
 function createInstruments() {
   const meter = metrics.getMeter("sidecar");
   return {
-    /** Speech finalized on the room laptop → line searchable in ES. SLO: p95 < 3s. */
+    /** Speech finalized on the room laptop → line searchable in ES. SLO: 95% under 12 s (SLO in health.ts). */
     captionLag: meter.createHistogram("sidecar.caption.lag", { unit: "ms", description: "Time from speech to searchable caption" }),
-    /** Ask request → answer returned. SLO: p95 < 4s. */
+    /** Ask request → answer returned. SLO: 95% under 6 s (SLO in health.ts). */
     answerLatency: meter.createHistogram("sidecar.ask.latency", { unit: "ms", description: "Time to answer a private question" }),
     questions: meter.createCounter("sidecar.questions", { description: "Private questions asked" }),
     signals: meter.createCounter("sidecar.signals", { description: "One-tap signals (lost, got_it, star)" }),

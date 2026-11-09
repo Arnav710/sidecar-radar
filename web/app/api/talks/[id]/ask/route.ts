@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import type { AskResponse, Question, Talk } from "@sidecar/shared";
-import { formatOffset, offsetSince } from "@sidecar/shared";
+import { formatOffset, offsetSince, recordHealth } from "@sidecar/shared";
 import { m, withSpan } from "@sidecar/shared/otel";
 import { answerQuestion, tryAi } from "@/lib/ai";
 import { es, INDEX } from "@/lib/es";
@@ -67,7 +67,9 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     const attrs = { "sidecar.answer.mode": mode, "sidecar.answer.grounded": citations.some((c) => c.same_talk) };
     set({ ...attrs, "sidecar.citations.count": citations.length, "sidecar.next_stops.count": next_stops.length });
     m().questions.add(1, { "sidecar.room.id": talk.room_id });
-    m().answerLatency.record(performance.now() - started, attrs);
+    const latency = performance.now() - started;
+    m().answerLatency.record(latency, attrs);
+    recordHealth("answerLatency", latency); // also shown live on /status
 
     const body: AskResponse = { answer, citations, next_stops, mode };
     return Response.json(body);
