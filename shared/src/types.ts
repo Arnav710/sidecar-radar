@@ -258,3 +258,36 @@ export interface SavedSchedule {
   blocks: PlanBlock[];
   updated_at: string;
 }
+
+// ---- Connect: blind matches, mutual accept, conversation kit, graph ----
+
+export interface ConversationKit {
+  why: string;
+  opener: string;
+  follow_ups: string[];
+  you_bring: string;
+  they_bring: string;
+}
+
+export type MatchState = "open" | "you_want" | "they_want" | "mutual";
+
+/** What you see about a match. Blind (no name) until state is "mutual". */
+export interface BlindCard {
+  match_id: string;
+  kind: "same_problem" | "same_interests";
+  score: number;
+  shared_problem: string;
+  shared_talks: { id: string; title: string }[];
+  blind: { role: string; years: number; company_type: string; working_on: string; demo: boolean };
+  state: MatchState;
+  reveal?: { display_name: string; kit: ConversationKit };
+}
+
+export interface ConnectResponse {
+  me: { ready: boolean; display_name?: string };
+  cards: BlindCard[];
+}
+
+export interface GraphNode { id: string; label: string; demo: boolean; asked: boolean }
+export interface GraphEdge { source: string; target: string; kind: "same_problem" | "same_interests"; score: number }
+export interface GraphResponse { talk_id: string; nodes: GraphNode[]; edges: GraphEdge[]; generated_at: string }

@@ -8,7 +8,9 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@sidecar/shared": "*"
+    "@elastic/elasticsearch": "8.18.2",
+    "@sidecar/shared": "*",
+    "openai": "4.104.0"
   },
   "devDependencies": {
     "esbuild": "0.25.5",

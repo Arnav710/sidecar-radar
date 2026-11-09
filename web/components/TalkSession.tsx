@@ -272,6 +272,8 @@ export function TalkSession({ talk, conference, serverNow }: { talk: SessionTalk
             <span className="pill">{roomLabel(talk.room_id)}</span>
             <span className="pill">{timeLabel(talk.start)} – {timeLabel(talk.end)}</span>
             <span className="pill capitalize">{talk.level}</span>
+            <Link href="/connect" className="pill bg-lime hover:bg-sun">🤝 Your matches</Link>
+            <Link href={`/talk/${talk.id}/graph`} className="pill hover:bg-sun" target="_blank">🕸️ People graph</Link>
           </div>
           <h1 className="mt-3 text-2xl leading-tight sm:text-3xl">{talk.title}</h1>
           <p className="mt-1 text-sm text-ink-soft">

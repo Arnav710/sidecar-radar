@@ -1,9 +1,9 @@
 import Link from "next/link";
 import type { Conference } from "@/lib/conferences";
-import { IconBook, IconCalendar, IconHome, IconUser } from "./Icons";
+import { IconBook, IconCalendar, IconHome, IconPeople, IconUser } from "./Icons";
 import { Logo } from "./Logo";
 
-export type ShellTab = "dashboard" | "schedule" | "notebook";
+export type ShellTab = "dashboard" | "schedule" | "notebook" | "connect";
 
 // The frame around every signed-in page: a sidebar on large screens and a
 // bottom tab bar on phones. The conference switcher always goes back to the dashboard.
@@ -16,6 +16,7 @@ export function AppShell({ conf, active, children }: { conf?: Conference; active
           { tab: "notebook" as const, label: "Notebook", href: `/c/${conf.id}/notebook`, icon: <IconBook /> },
         ]
       : []),
+    { tab: "connect", label: "Connect", href: "/connect", icon: <IconPeople /> },
   ];
 
   return (
