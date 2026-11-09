@@ -6,16 +6,14 @@ import type { BlindCard, ConnectResponse } from "@sidecar/shared";
 
 const POLL_MS = 4000;
 
-type Alert =
-  | { kind: "new"; card: BlindCard }
-  | { kind: "they_want"; card: BlindCard }
-  | { kind: "mutual"; card: BlindCard };
+type Alert = { kind: "they_want"; card: BlindCard } | { kind: "mutual"; card: BlindCard };
 
-// Pop-ups during a talk, from real matching (not demo people):
-// - you asked a question and someone in the building is stuck on the same thing
-// - someone wants to meet you (on the other person's device)
-// - it's mutual (both devices)
-export function LiveMatchAlerts() {
+// During a talk:
+// - inline (showSuggestions): "people stuck on the same thing" after you ask,
+//   each one opens their blind card
+// - pop-ups only for real people: someone wants to meet you, and it's mutual
+export function LiveMatchAlerts({ showSuggestions = false }: { showSuggestions?: boolean }) {
+  const [cards, setCards] = useState<BlindCard[]>([]);
   const [alert, setAlert] = useState<Alert | null>(null);
   const [open, setOpen] = useState<BlindCard | null>(null);
   const [busy, setBusy] = useState(false);
@@ -25,6 +23,7 @@ export function LiveMatchAlerts() {
     const res = await fetch("/api/connect", { cache: "no-store" }).catch(() => null);
     if (!res?.ok) return;
     const data = (await res.json()) as ConnectResponse;
+    setCards(data.cards);
     const real = data.cards.filter((c) => !c.blind.demo);
     const first = seen.current === null;
     const prev = seen.current ?? new Map<string, string>();
@@ -33,11 +32,10 @@ export function LiveMatchAlerts() {
       const before = prev.get(c.match_id);
       if (c.state === "mutual" && before !== "mutual" && !first) next = { kind: "mutual", card: c };
       else if (c.state === "they_want" && before !== "they_want") next ??= { kind: "they_want", card: c };
-      else if (!before && c.state === "open" && (!first || data.me.my_problems?.length)) next ??= { kind: "new", card: c };
     }
     seen.current = new Map(real.map((c) => [c.match_id, c.state]));
     if (next) setAlert(next);
-    setOpen((o) => (o ? real.find((c) => c.match_id === o.match_id) ?? o : o));
+    setOpen((o) => (o ? data.cards.find((c) => c.match_id === o.match_id) ?? o : o));
   }, []);
 
   useEffect(() => {
@@ -58,12 +56,36 @@ export function LiveMatchAlerts() {
     setBusy(false);
   };
 
+  const suggestions = cards.filter((c) => c.kind === "same_problem").slice(0, 3);
   return (
     <>
+      {showSuggestions && (
+        <section className="rounded-xl border-2 border-ink bg-sun/40 p-3" aria-label="People stuck on the same thing">
+          <p className="text-sm font-bold">🤝 People here stuck on the same thing</p>
+          {suggestions.length === 0 ? (
+            <p className="mt-1 text-xs text-ink-soft">Finding people… (matching runs a few seconds after you ask)</p>
+          ) : (
+            <ul className="mt-2 space-y-1.5">
+              {suggestions.map((c) => (
+                <li key={c.match_id}>
+                  <button type="button" onClick={() => setOpen(c)} className="flex w-full items-center gap-2 rounded-lg border border-ink bg-white px-2.5 py-2 text-left text-sm hover:bg-lime">
+                    <span aria-hidden="true">🔒</span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate font-semibold">{c.blind.role || "Attendee"}{c.blind.years ? ` · ${c.blind.years} yrs` : ""}{c.blind.demo ? " · demo" : ""}</span>
+                      <span className="block truncate text-xs text-ink-soft">Also stuck on: {c.shared_problem}</span>
+                    </span>
+                    <span className="chip bg-tangerine text-white">{Math.round(c.score * 100)}%</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      )}
+
       {alert && !open && (
         <div role="status" className="fixed inset-x-3 bottom-24 z-50 mx-auto max-w-md animate-pop rounded-2xl border-2 border-ink bg-sun p-4 shadow-[4px_4px_0_0_var(--color-ink)] sm:bottom-6">
           <p className="font-display text-lg font-extrabold leading-snug">
-            {alert.kind === "new" && "🔥 Someone here is stuck on the same thing"}
             {alert.kind === "they_want" && "👋 Someone wants to meet you"}
             {alert.kind === "mutual" && "🎉 It's mutual! Your conversation is ready"}
           </p>
@@ -73,7 +95,7 @@ export function LiveMatchAlerts() {
               <Link href="/connect" className="btn btn-sm bg-tangerine text-white">See who + meetup</Link>
             ) : (
               <button type="button" className="btn btn-sm bg-tangerine text-white" onClick={() => { setOpen(alert.card); setAlert(null); }}>
-                {alert.kind === "they_want" ? "See their card" : "See the match"}
+                See their card
               </button>
             )}
             <button type="button" className="btn btn-sm" onClick={() => setAlert(null)}>Later</button>

@@ -262,7 +262,6 @@ export function TalkSession({ talk, conference, serverNow }: { talk: SessionTalk
 
   return (
     <div className="mx-auto max-w-6xl px-4 pt-5 sm:px-8 sm:pt-8">
-      <LiveMatchAlerts />
       <Link href={conference ? `/c/${conference}/schedule` : "/"} className="inline-flex items-center gap-1.5 text-sm font-medium text-ink-soft hover:text-ink">
         <IconArrowLeft size={16} /> Schedule
       </Link>
@@ -383,6 +382,7 @@ export function TalkSession({ talk, conference, serverNow }: { talk: SessionTalk
                     {ready ? "Ask a question or catch up on what you missed. Answers come from what the speaker actually said." : "Catch-up, questions and answers unlock when the session starts."}
                   </p>
                 )}
+                <LiveMatchAlerts showSuggestions={cards.some((c) => c.kind === "ask" && !!c.body)} />
                 {cards.map((c) => <AnswerCard key={c.id} card={c} onJump={jumpTo} onSave={() => saveToNotebook([c.kind === "ask" ? `Q: ${c.title}` : c.title, c.body].filter(Boolean).join("\n"), c.kind === "ask" ? FOLDER.questions : FOLDER.catchUps, c.id)} />)}
               </div>
 
@@ -503,27 +503,27 @@ function AnswerCard({ card: c, onJump, onSave }: { card: Card; onJump: (c: Citat
       )}
       {/* Another session at this KubeCon already covered it (from its live transcript). */}
       {c.citations && c.citations.some((cit) => !cit.same_talk) && (
-        <div className="mt-3 rounded-lg border border-line bg-surface p-2.5 text-sm">
-          <p className="eyebrow">Already covered in another session</p>
-          <ul className="mt-1 space-y-1.5">
-            {c.citations.filter((cit) => !cit.same_talk).slice(0, 2).map((cit, i) => (
+        <div className="mt-3 rounded-xl border-2 border-ink bg-lilac/40 p-3">
+          <p className="text-sm font-bold">📼 Already covered earlier today</p>
+          <ul className="mt-1.5 space-y-2">
+            {c.citations.filter((cit) => !cit.same_talk).slice(0, 1).map((cit, i) => (
               <li key={i}>
-                <Link className="font-medium hover:underline" href={`/talk/${cit.talk_id}`}>{cit.talk_title}</Link>
-                <span className="text-ink-soft"> · {roomLabel(cit.room_id)} · at {formatOffset(cit.offset_s)}</span>
-                <p className="mt-0.5 line-clamp-2 text-ink-soft">&ldquo;{cit.text}&rdquo;</p>
+                <Link className="text-base font-semibold leading-snug hover:underline" href={`/talk/${cit.talk_id}`}>{cit.talk_title}</Link>
+                <p className="text-sm text-ink-soft">{roomLabel(cit.room_id)} · said at minute {formatOffset(cit.offset_s)}</p>
+                <p className="mt-1 rounded-lg bg-white/70 px-2 py-1 text-sm italic">&ldquo;{cit.text}&rdquo;</p>
               </li>
             ))}
           </ul>
         </div>
       )}
       {c.nextStops && c.nextStops.length > 0 && (
-        <div className="mt-3 rounded-lg bg-paper p-2.5 text-sm">
-          <p className="eyebrow">Coming up at this KubeCon</p>
-          <ul className="mt-1 space-y-1">
-            {c.nextStops.map((s) => (
+        <div className="mt-3 rounded-xl border-2 border-ink bg-sky/40 p-3">
+          <p className="text-sm font-bold">⏭️ Go deeper next</p>
+          <ul className="mt-1.5 space-y-2">
+            {c.nextStops.slice(0, 1).map((s) => (
               <li key={s.talk_id}>
-                <Link className="font-medium hover:underline" href={`/talk/${s.talk_id}`}>{s.title}</Link>{" "}
-                <span className="text-ink-soft">· {new Date(s.start).toLocaleDateString("en-US", { weekday: "short", timeZone: "America/Denver" })} {timeLabel(s.start)} · {roomLabel(s.room_id)}</span>
+                <Link className="text-base font-semibold leading-snug hover:underline" href={`/talk/${s.talk_id}`}>{s.title}</Link>
+                <p className="text-sm text-ink-soft">{new Date(s.start).toLocaleDateString("en-US", { weekday: "long", timeZone: "America/Denver" })} {timeLabel(s.start)} · {roomLabel(s.room_id)}</p>
               </li>
             ))}
           </ul>
