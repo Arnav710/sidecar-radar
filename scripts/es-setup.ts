@@ -12,6 +12,8 @@ import { Client } from "@elastic/elasticsearch";
 try { process.loadEnvFile(".env"); } catch { /* no .env: use the real environment */ }
 
 const SEMANTIC = process.env.ES_SEMANTIC !== "off";
+// ELSER, Elastic's own sparse semantic model, served by the Elastic Inference Service.
+const INFERENCE_ID = process.env.ES_INFERENCE_ID || ".elser-2-elastic";
 const es = new Client({
   node: process.env.ES_URL!,
   auth: process.env.ES_API_KEY ? { apiKey: process.env.ES_API_KEY } : undefined,
@@ -20,7 +22,7 @@ const es = new Client({
 /** A text field searchable by keyword, plus its semantic twin. */
 function searchable(name: string) {
   return SEMANTIC
-    ? { [name]: { type: "text", copy_to: `${name}_semantic` }, [`${name}_semantic`]: { type: "semantic_text" } }
+    ? { [name]: { type: "text", copy_to: `${name}_semantic` }, [`${name}_semantic`]: { type: "semantic_text", inference_id: INFERENCE_ID } }
     : { [name]: { type: "text" } };
 }
 
