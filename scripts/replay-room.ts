@@ -33,7 +33,7 @@ async function main() {
     const res = await fetch(`${BASE}/api/talks/${TALK}/lines`, {
       method: "POST",
       headers: { "content-type": "application/json", "x-room-key": KEY },
-      body: JSON.stringify({ text, offset_s }),
+      body: JSON.stringify({ text, offset_s, spoken_at: Date.now(), source: "replay" }),
     });
     console.log(`${res.ok ? "✓" : "✗"} ${offset_s}s ${text.slice(0, 60)}`);
   }
