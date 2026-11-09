@@ -159,7 +159,8 @@ export function LiveTalk({ talk }: { talk: PublicTalk }) {
               {talk.accessibility && !talk.accessibility.step_free && <span className="ml-2">· stairs only</span>}
             </p>
           </div>
-          <span className="chip ml-auto border-paper bg-lilac text-ink">{roomLabel(talk.room_id)}</span>
+          <a href="/connect" className="chip ml-auto border-paper bg-lime text-ink hover:bg-sun">🤝 Your matches</a>
+          <span className="chip border-paper bg-lilac text-ink">{roomLabel(talk.room_id)}</span>
           <span className="chip border-paper bg-tangerine text-white">
             <span className="inline-block h-2 w-2 animate-pulse-dot rounded-full bg-white" /> LIVE {formatOffset(elapsed)}
           </span>

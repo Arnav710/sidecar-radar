@@ -17,7 +17,7 @@ export default async function Home() {
         <nav className="flex gap-2 text-sm font-semibold">
           <Link href="/onboarding" className="chip bg-white hover:bg-sun">Profile</Link>
           <Link href="/plan" className="chip bg-white hover:bg-sun">Plan</Link>
-          <span className="chip bg-white">Connect</span>
+          <Link href="/connect" className="chip bg-lime hover:bg-sun">Connect</Link>
           <span className="chip bg-white">Recap</span>
         </nav>
       </header>
