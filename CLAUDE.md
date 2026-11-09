@@ -4,6 +4,8 @@
 
 Handoff from a claude.ai chat. Read this fully before doing anything. The goal is to WIN this hackathon.
 
+> **Product plan update (12:45 PM):** the product is **Sidecar** as described in [docs/PLAN.md](docs/PLAN.md) (what and why) and [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) (how). They **supersede §5 (Conference Galaxy), §7 (roadmap) and §8 (demo script) below**, including the chaos button: Radar's rules say don't break things on purpose. Sections 1–4, 6, 9 and 10 (rules, tracks, sponsor facts, setup, working agreements) still apply. Team/cluster: `sidecar`, namespace `team-sidecar`, URL https://sidecar.cnh.radarhq.io.
+
 ## 1. Situation
 
 - Project name: **Sidecar**. Use this name in the README, UI, repo docs and demo.
