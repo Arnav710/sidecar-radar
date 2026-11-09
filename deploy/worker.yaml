@@ -16,6 +16,8 @@ spec:
       labels:
         app: worker
     spec:
+      # The worker never calls the Kubernetes API either.
+      automountServiceAccountToken: false
       containers:
         - name: worker
           image: app
@@ -74,6 +76,15 @@ spec:
               type: RuntimeDefault
             capabilities:
               drop: ["ALL"]
+            # The worker writes nothing to disk except temp files.
+            readOnlyRootFilesystem: true
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir:
+            sizeLimit: 64Mi
 ---
 apiVersion: v1
 kind: Service

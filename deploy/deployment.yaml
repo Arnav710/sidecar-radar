@@ -16,6 +16,18 @@ spec:
       labels:
         app: app
     spec:
+      # The app never calls the Kubernetes API, so it gets no API token (Radar Checks: automountServiceAccountToken).
+      automountServiceAccountToken: false
+      # Spread the 2 replicas across nodes when possible, so one node going away
+      # doesn't take both down (Radar Checks: missingTopologySpread). ScheduleAnyway
+      # so a pod never sits Pending on a one-node cluster.
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app: app
       containers:
         - name: app
           image: app
@@ -78,3 +90,18 @@ spec:
               type: RuntimeDefault
             capabilities:
               drop: ["ALL"]
+            # Radar Checks: readOnlyRootFs. Next.js only writes its cache and
+            # temp files, which get their own small writable volumes below.
+            readOnlyRootFilesystem: true
+          volumeMounts:
+            - name: next-cache
+              mountPath: /app/web/.next/cache
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: next-cache
+          emptyDir:
+            sizeLimit: 256Mi
+        - name: tmp
+          emptyDir:
+            sizeLimit: 64Mi

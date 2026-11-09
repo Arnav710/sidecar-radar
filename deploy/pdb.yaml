@@ -1,0 +1,13 @@
+# Keep at least one web pod serving during node drains and cluster upgrades
+# (Radar Checks: missingPDB). The app runs 2 replicas, so one can always move.
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: app
+  labels:
+    app: app
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: app
