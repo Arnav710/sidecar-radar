@@ -1,3 +1,4 @@
+import { queueJob } from "@/lib/worker";
 import { NextResponse } from "next/server";
 import { currentUid } from "@/lib/identity";
 import { getSchedule, parseBlocks, saveSchedule } from "@/lib/schedule";
@@ -19,7 +20,10 @@ export async function PUT(req: Request) {
   if (!parsed.ok) return NextResponse.json({ error: parsed.error }, { status: 400 });
 
   try {
-    return NextResponse.json(await saveSchedule(await currentUid(), parsed.blocks));
+    const uid = await currentUid();
+    const saved = await saveSchedule(uid, parsed.blocks);
+    queueJob("rebuild-person", { uid }); // refresh this person's matching doc
+    return NextResponse.json(saved);
   } catch {
     return NextResponse.json({ error: "Could not save the schedule." }, { status: 502 });
   }
