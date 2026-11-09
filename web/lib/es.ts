@@ -10,6 +10,7 @@ export const INDEX = {
   signals: "sidecar-signals",
   profiles: "sidecar-profiles",
   events: "sidecar-events",
+  schedules: "sidecar-schedules",
 } as const;
 
 /**

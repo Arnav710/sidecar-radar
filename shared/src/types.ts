@@ -171,3 +171,63 @@ export interface SourceSyncResult {
   found: number;
   message?: string;
 }
+
+// ---- The recommended schedule ----
+
+/** Something the attendee could do instead of (or in addition to) what the plan picked. */
+export interface PlanAlternative {
+  kind: "talk" | "event";
+  /** Talk id, or event id. */
+  ref: string;
+  title: string;
+  start: string;
+  end: string;
+  room_id?: string;
+  location?: string;
+  url?: string;
+  /** Why it fits this person, in one line. */
+  why: string;
+  /** True for a talk that clashes with a pick: its captions and answers stay available in Sidecar. */
+  catch_up?: boolean;
+  /** Accessibility metadata from the talk or event (repo rule 3). null means unknown. */
+  accessibility?: EventAccessibility;
+}
+
+/**
+ * One row of the day. A "handoff" block is an open slot kept free on purpose:
+ * Sidecar's matching flow will later place a meetup with another attendee there.
+ */
+export interface PlanBlock {
+  /** Unique within the schedule, e.g. "talk:otel-at-scale" or "handoff:2026-11-09T19:00:00.000Z". */
+  id: string;
+  kind: "talk" | "event" | "handoff";
+  start: string;
+  end: string;
+  title: string;
+  /** Talk id or event id (not set on handoff blocks). */
+  ref?: string;
+  room_id?: string;
+  location?: string;
+  url?: string;
+  why?: string;
+  /** Other options for this time, best first. */
+  alternatives?: PlanAlternative[];
+  /** Handoff blocks only: "open" is just a free slot, "held" is reserved for a match. */
+  handoff?: "open" | "held";
+  /** Accessibility metadata from the talk or event (repo rule 3). null means unknown. */
+  accessibility?: EventAccessibility;
+}
+
+export interface Plan {
+  blocks: PlanBlock[];
+  /** Other talks and events that were not picked, best first, so the attendee can add them. */
+  pool: PlanAlternative[];
+  generated_at: string;
+}
+
+/** The schedule an attendee saved, after swapping and removing things. */
+export interface SavedSchedule {
+  uid: string;
+  blocks: PlanBlock[];
+  updated_at: string;
+}
