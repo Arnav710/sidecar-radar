@@ -19,6 +19,9 @@ type Card = {
   saved?: string;
 };
 
+/** The folder an assistant card is filed under. Auto-save and the manual button both use this. */
+const folderFor = (k: Card["kind"]) => (k === "ask" ? FOLDER.questions : k === "apply" ? FOLDER.ideas : FOLDER.catchUps);
+
 const KIND_LABEL: Record<Card["kind"], string> = { catchup: "Catch up", apply: "For your work", ask: "Your question", explain: "Explained again", note: "Note" };
 const TEXT_SIZES = ["text-[0.9375rem]", "text-base", "text-lg"];
 const POLL_MS = 1500;
@@ -222,7 +225,7 @@ export function TalkSession({ talk, conference, serverNow }: { talk: SessionTalk
       }
       finish(id, { title, body });
       // Ideas for your own work go with your ideas; recaps go with the other catch-ups.
-      if (autoSave) saveToNotebook(`${title}\n${body}`, kind === "apply" ? FOLDER.ideas : FOLDER.catchUps, id);
+      if (autoSave) saveToNotebook(`${title}\n${body}`, folderFor(kind), id);
     } catch (err) {
       finish(id, { title: "Something went wrong", error: (err as Error).message || "Couldn't reach Sidecar. Try again." });
     }
@@ -398,7 +401,7 @@ export function TalkSession({ talk, conference, serverNow }: { talk: SessionTalk
                     {ready ? "Ask a question or catch up on what you missed. Answers come from what the speaker actually said." : "Catch-up, questions and answers unlock when the session starts."}
                   </p>
                 )}
-                {cards.map((c) => <AnswerCard key={c.id} card={c} onJump={jumpTo} onSave={() => saveToNotebook([c.kind === "ask" ? `Q: ${c.title}` : c.title, c.body].filter(Boolean).join("\n"), c.kind === "ask" ? FOLDER.questions : FOLDER.catchUps, c.id)} />)}
+                {cards.map((c) => <AnswerCard key={c.id} card={c} onJump={jumpTo} onSave={() => saveToNotebook([c.kind === "ask" ? `Q: ${c.title}` : c.title, c.body].filter(Boolean).join("\n"), folderFor(c.kind), c.id)} />)}
               </div>
 
               <label className="flex items-center gap-2 border-t border-line px-3 py-2 text-xs text-ink-soft">
