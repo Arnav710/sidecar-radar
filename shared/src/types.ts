@@ -96,3 +96,51 @@ export interface ExplainResponse {
   window: { from_s: number; to_s: number };
   mode: "ai" | "extract";
 }
+
+// ---- Speaker report (PLAN.md §2g) ----
+
+/**
+ * Review rule 11: a speaker never sees a cluster or a minute that fewer than
+ * this many people are behind, and never sees who asked or tapped.
+ */
+export const MIN_PEOPLE = 3;
+
+/** One minute of the talk, as the speaker sees it. */
+export interface MinuteBucket {
+  /** Minutes since the talk started. */
+  minute: number;
+  lost: number;
+  got_it: number;
+  questions: number;
+  /** True when fewer than MIN_PEOPLE people are behind this minute, so counts are withheld. */
+  withheld: boolean;
+}
+
+/** Questions grouped by the topic the classifier gave them. */
+export interface QuestionCluster {
+  topic: string;
+  questions: number;
+  people: number;
+}
+
+/** A minute where confusion spiked, with what was being said at the time. */
+export interface ConfusionSpike {
+  minute: number;
+  lost: number;
+  /** Transcript lines from that minute. Never question text. */
+  said: string[];
+}
+
+export interface SpeakerReport {
+  talk: Pick<Talk, "id" | "title" | "speaker" | "room_id" | "start" | "end">;
+  /** Distinct people who asked or tapped anything. Counts only, never ids. */
+  people: number;
+  totals: { lost: number; got_it: number; questions: number };
+  timeline: MinuteBucket[];
+  clusters: QuestionCluster[];
+  spikes: ConfusionSpike[];
+  /** LLM write-up; absent when there is too little to summarise or no key is set. */
+  summary?: string;
+  summary_mode: "ai" | "none";
+  min_people: number;
+}
