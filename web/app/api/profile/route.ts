@@ -1,6 +1,6 @@
 import { queueJob } from "@/lib/worker";
 import { NextResponse } from "next/server";
-import { currentUid } from "@/lib/identity";
+import { currentUid, isAnonymous } from "@/lib/identity";
 import { getProfile, parseProfileInput, saveProfile } from "@/lib/profiles";
 
 export const dynamic = "force-dynamic";
@@ -16,12 +16,15 @@ export async function GET() {
 export async function POST(req: Request) {
   if (!process.env.ES_URL) return NextResponse.json({ error: "Elasticsearch is not configured." }, { status: 503 });
 
+  // No id cookie (cookies blocked, a script): refuse, so nobody's profile is stored under a shared id.
+  const uid = await currentUid();
+  if (isAnonymous(uid)) return NextResponse.json({ error: "Reload the page and try again." }, { status: 401 });
+
   const body = await req.json().catch(() => null);
   const parsed = parseProfileInput(body);
   if (!parsed.ok) return NextResponse.json({ error: parsed.error }, { status: 400 });
 
   try {
-    const uid = await currentUid();
     const saved = await saveProfile(uid, parsed.value);
     queueJob("rebuild-person", { uid }); // refresh this person's matching doc
     return NextResponse.json(saved);
